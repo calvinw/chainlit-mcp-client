@@ -1,6 +1,19 @@
-# Coffee Shop Database 
+# MCP Sqlite Server 
 
-## Products Table
+Click on the plug icon and enter
+
+### Name 
+```bash
+Sqlite MCP Server
+```
+### Command
+```bash
+uvx mcp-server-sqlite --db-path ./coffee_shop.db
+```
+
+## The Database - Coffee Shop
+
+### Products Table
 
 | Product ID | Name               | Category | Price | Description                                                   | In Stock |
 |------------|-------------------|----------|-------|---------------------------------------------------------------|----------|
@@ -15,7 +28,7 @@
 | 9          | Iced Coffee        | Coffee   | $3.25 | Chilled coffee served with ice                                | Yes |
 | 10         | Chai Latte         | Tea      | $3.95 | Spiced tea with steamed milk                                  | Yes |
 
-## Orders Table
+### Orders Table
 
 | Order ID | Product ID | Customer Name  | Quantity | Order Date           | Completed |
 |----------|------------|----------------|----------|----------------------|-----------|

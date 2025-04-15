@@ -8,7 +8,7 @@ from mcp import ClientSession
 import openai  # Changed import
 
 import chainlit as cl
-from chainlit.input_widget import Select, TextInput
+from chainlit.input_widget import Select, TextInput, Slider
 from dotenv import load_dotenv
 
 # Configure logging
@@ -49,57 +49,7 @@ initialize_database()
 
 load_dotenv()
 
-# Configure project settings in config.toml to require API key
-def modify_config_file():
-    """Add the required API key to the config file if not already there"""
-    import toml
-    import os
-    
-    config_path = os.path.join('.chainlit', 'config.toml')
-    
-    # Create directory if it doesn't exist
-    os.makedirs(os.path.dirname(config_path), exist_ok=True)
-    
-    # Read existing config if it exists
-    config = {}
-    if os.path.exists(config_path):
-        try:
-            with open(config_path, 'r') as f:
-                config = toml.load(f)
-        except Exception as e:
-            logger.error(f"Error reading config file: {str(e)}")
-    
-    # Ensure project section exists
-    if 'project' not in config:
-        config['project'] = {}
-    
-    # Add OpenRouter API key to required user env variables
-    if 'user_env' not in config['project']:
-        config['project']['user_env'] = ["OPENROUTER_API_KEY"]
-    elif "OPENROUTER_API_KEY" not in config['project']['user_env']:
-        config['project']['user_env'].append("OPENROUTER_API_KEY")
-    
-    # Write back the config
-    try:
-        with open(config_path, 'w') as f:
-            toml.dump(config, f)
-        logger.info("Updated config file to require API key")
-    except Exception as e:
-        logger.error(f"Error writing config file: {str(e)}")
-
-# Call the function to modify config
-modify_config_file()
-
-# Define available models globally using the user's list
-AVAILABLE_MODELS = [
-    "openai/gpt-4o-mini",
-    "openai/gpt-4o",
-    "google/gemini-2.0-flash-001",
-    "google/gemini-2.0-flash-lite-001",
-    "google/gemini-flash-1.5",
-    "google/gemini-flash-1.5-8b",
-    "anthropic/claude-3-haiku"
-]
+# No need to define AVAILABLE_MODELS globally anymore
 
 SYSTEM = "you are a helpful assistant."
 
@@ -194,11 +144,16 @@ async def call_llm(chat_messages, api_key):
     # Flatten the OpenAI-formatted tools from all MCP connections
     tools = flatten([tools for _, tools in mcp_openai_tools.items()])
 
+    # Get settings
+    settings = cl.user_session.get("settings", {})
+    model = settings.get("Model", "openai/gpt-4o-mini")
+    temperature = float(settings.get("Temperature", 0))
+
     # Prepare arguments for OpenAI API call
     api_args = {
-        "model": cl.user_session.get("selected_model"),
+        "model": model,
         "messages": [{"role": "system", "content": SYSTEM}] + chat_messages,
-        "temperature": 0,
+        "temperature": temperature,
         "stream": True,
     }
     if tools:
@@ -245,72 +200,73 @@ async def call_llm(chat_messages, api_key):
 
 @cl.on_chat_start
 async def start_chat():
-    # Prepare model options for the dropdown
-    model_values = [model.split('/')[-1] for model in AVAILABLE_MODELS]
-    
-    # Create settings panel with ONLY model selector (no API key here)
+    # Create settings panel with model selector, temperature slider, and API key input
     settings = await cl.ChatSettings(
         [
             Select(
-                id="model_selector",
-                label="Select Model",
-                values=model_values,
-                initial_index=0
+                id="Model",
+                label="OpenRouter Model",
+                values=[
+                    "openai/gpt-4o-mini",
+                    "openai/gpt-4o",
+                    "google/gemini-2.0-flash-001",
+                    "google/gemini-2.0-flash-lite-001",
+                    "google/gemini-flash-1.5",
+                    "google/gemini-flash-1.5-8b",
+                    "anthropic/claude-3-haiku"
+                ],
+                initial_index=0,
+            ),
+            Slider(
+                id="Temperature",
+                label="Temperature",
+                initial=0,
+                min=0,
+                max=2,
+                step=0.1,
             )
         ]
     ).send()
     
-    # Extract model value from settings
-    selected_model_name = settings["model_selector"]
+    # Store initial settings values in user session
+    initial_settings = {
+        "Model": "openai/gpt-4o-mini",  # Default to first option
+        "Temperature": 0                # Default temperature
+    }
+    cl.user_session.set("settings", initial_settings)
     
-    # Find full model path from the selected name
-    for model in AVAILABLE_MODELS:
-        if model.split('/')[-1] == selected_model_name:
-            selected_model = model
-            break
-    else:
-        selected_model = AVAILABLE_MODELS[0]  # Default if not found
-    
-    # Set session variables for the model and message history
-    cl.user_session.set("selected_model", selected_model)
+    # Set session variables for message history and tools
     cl.user_session.set("chat_messages", [])
     cl.user_session.set("mcp_tools_data", {})
     cl.user_session.set("mcp_openai_tools", {})
-    
-    # Welcome message
-    await cl.Message(content=f"Welcome! Please provide your OpenRouter API Key in the API Keys section (key icon in the top right) before starting. Current model selected: **{selected_model}**").send()
 
 # Settings update handler
 @cl.on_settings_update
 async def on_settings_update(settings):
-    # Extract model value from settings
-    selected_model_name = settings["model_selector"]
+    # Update all settings in user session
+    cl.user_session.set("settings", settings)
     
-    # Find full model path from the selected name
-    for model in AVAILABLE_MODELS:
-        if model.split('/')[-1] == selected_model_name:
-            selected_model = model
-            break
-    else:
-        selected_model = AVAILABLE_MODELS[0]  # Default if not found
+    # If API key was provided, store it in the env user session
+    if "api_key" in settings:
+        cl.user_session.set("env", {"OPENROUTER_API_KEY": settings["api_key"]})
     
-    # Update only the model in session variables
-    cl.user_session.set("selected_model", selected_model)
+    # Get the current model setting
+    model = settings.get("Model", "openai/gpt-4o-mini")
     
-    # Confirm model update
-    await cl.Message(content=f"Settings updated. Now using model: **{selected_model}**").send()
+    # Confirm settings update
+    await cl.Message(content=f"Settings updated. Now using model: **{model}**").send()
 
 @cl.on_message
 async def on_message(msg: cl.Message):
-    # Get the API key from environment variables section
-    api_keys = cl.user_session.get("_api_keys", {})
-    api_key = api_keys.get("OPENROUTER_API_KEY", "")
+    # Get API key from environment variables in user session
+    user_env = cl.user_session.get("env", {})
+    api_key = user_env.get("OPENROUTER_API_KEY")
     
-    # Validate API key
     if not api_key:
-        await cl.ErrorMessage(content="Please provide your OpenRouter API Key in the API Keys section (key icon in the top right) before continuing.").send()
+        # Let Chainlit handle showing the API key dialog by returning silently
+        await cl.Message(content="⚠️ OpenRouter API Key not found. Please update your settings.").send()
         return
-    
+            
     chat_messages = cl.user_session.get("chat_messages")
     chat_messages.append({"role": "user", "content": msg.content})
 

@@ -1,73 +1,37 @@
 [project]
-# Whether to enable telemetry (default: true). No personal data is collected.
 enable_telemetry = true
-
-# List of environment variables to be provided by each user to use the app.
-user_env = ["OPENROUTER_API_KEY"]
-
-# Duration (in seconds) during which the session is saved when the connection is lost
+user_env = [ "OPENROUTER_API_KEY",]
 session_timeout = 3600
-
-# Duration (in seconds) of the user session expiry
-user_session_timeout = 1296000  # 15 days
-
-# Enable third parties caching (e.g LangChain cache)
+user_session_timeout = 1296000
 cache = false
-
-# Authorized origins
-allow_origins = ["*"]
+allow_origins = [ "*",]
 
 [features]
-# Process and display HTML in messages. This can be a security risk (see https://stackoverflow.com/questions/19603097/why-is-it-dangerous-to-render-user-generated-html-or-javascript)
 unsafe_allow_html = false
-
-# Process and display mathematical expressions. This can clash with "$" characters in messages.
-latex = false
-
-# Automatically tag threads with the current chat profile (if a chat profile is used)
+latex = true 
 auto_tag_thread = true
-
-# Allow users to edit their own messages
 edit_message = true
 
-# Authorize users to spontaneously upload files with messages
-[features.spontaneous_file_upload]
-    enabled = true
-    # Define accepted file types using MIME types
-    # Examples:
-    # 1. For specific file types:
-    #    accept = ["image/jpeg", "image/png", "application/pdf"]
-    # 2. For all files of certain type:
-    #    accept = ["image/*", "audio/*", "video/*"]
-    # 3. For specific file extensions:
-    #    accept = { "application/octet-stream" = [".xyz", ".pdb"] }
-    # Note: Using "*/*" is not recommended as it may cause browser warnings
-    accept = ["*/*"]
-    max_files = 20
-    max_size_mb = 500
-
-[features.audio]
-    # Sample rate of the audio
-    sample_rate = 24000
-
 [UI]
-# Name of the app and chatbot
 name = "Coffee Shop LLM Assistant"
-# Description of the app and chatbot. This is used for HTML tags
 description = "A chatbot for accessing the coffee shop database"
-# Chain of Thought (CoT) display mode. Can be "hidden", "tool_call" or "full"
 cot = "full"
-
-[UI.features]
-# Show prompt playground in a separate page
-prompt_playground = true
-# Show settings button in the top-right corner
-settings_button = true
-# Enable chat history with a new session
-chat_history = true
-# Message author, bubbles, avatars customization
-human_avatar = false
-ai_avatar = true
 
 [meta]
 generated_by = "2.4.0"
+
+[features.spontaneous_file_upload]
+enabled = true
+accept = [ "*/*",]
+max_files = 20
+max_size_mb = 500
+
+[features.audio]
+sample_rate = 24000
+
+[UI.features]
+prompt_playground = true
+settings_button = true
+chat_history = true
+human_avatar = false
+ai_avatar = true
