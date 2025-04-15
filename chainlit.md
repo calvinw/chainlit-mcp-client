@@ -106,3 +106,7 @@ Can you tell me what tables are in the database?
 ```
 Can you describe the schema of the products table?
 ```
+
+Here is an [Example Chat Log](https://calvinw.github.io/chainlit-mcp-client/example_chat_with_sqlite_mcp_server.html) about the database
+
+
