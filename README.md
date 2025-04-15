@@ -24,7 +24,7 @@ uvx mcp-server-sqlite --db-path ./coffee_shop.db
 | 3          | Latte              | Coffee   | $3.75 | Espresso with steamed milk                                    | Yes |
 | 4          | Americano          | Coffee   | $2.75 | Espresso with hot water                                       | Yes |
 | 5          | Matcha Latte       | Tea      | $4.25 | Green tea powder with steamed milk                            | Yes |
-| a6          | Earl Grey          | Tea      | $2.50 | Black tea flavored with bergamot                              | Yes |
+| 6          | Earl Grey          | Tea      | $2.50 | Black tea flavored with bergamot                              | Yes |
 | 7          | Chocolate Croissant| Pastry   | $3.25 | Buttery croissant with chocolate filling                      | Yes |
 | 8          | Blueberry Muffin   | Pastry   | $2.95 | Moist muffin with fresh blueberries                           | Yes |
 | 9          | Iced Coffee        | Coffee   | $3.25 | Chilled coffee served with ice                                | Yes |
