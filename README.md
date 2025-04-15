@@ -109,3 +109,5 @@ Here is an [Example Chat Log](https://calvinw.github.io/chainlit-mcp-client/exam
 
 Here is an example [Show SQL and Tables Info](https://calvinw.github.io/chainlit-mcp-client/list_all_sql_and_table_state.html) showing that the LLM can list the SQL commands it performs and the state of the tables afterwards. 
 
+Here is an example of making a new table and moving information to that table
+[Adding Customer Table](https://calvinw.github.io/chainlit-mcp-client/adding_customer_table.html)

@@ -1,11 +1,10 @@
 import json
 import asyncio
 import os
-import sqlite3
 import logging
 
 from mcp import ClientSession
-import openai  # Changed import
+import openai
 
 import chainlit as cl
 from chainlit.input_widget import Select, TextInput, Slider
@@ -15,43 +14,9 @@ from dotenv import load_dotenv
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
 
-# Initialize and create database from SQL file
-def initialize_database():
-    db_path = "coffee_shop.db"
-    sql_path = "coffee_shop.sql"
-    
-    # Remove existing database if it exists
-    if os.path.exists(db_path):
-        logger.info(f"Removing existing database: {db_path}")
-        os.remove(db_path)
-    
-    # Create a new database
-    logger.info(f"Creating new database: {db_path}")
-    conn = sqlite3.connect(db_path)
-    
-    try:
-        # Read SQL file
-        with open(sql_path, 'r') as sql_file:
-            sql_script = sql_file.read()
-        
-        # Execute SQL script
-        conn.executescript(sql_script)
-        conn.commit()
-        logger.info("Database initialized successfully")
-    except Exception as e:
-        logger.error(f"Error initializing database: {str(e)}")
-        raise
-    finally:
-        conn.close()
-
-# Run database initialization before anything else
-initialize_database()
-
 load_dotenv()
 
-# No need to define AVAILABLE_MODELS globally anymore
-
-SYSTEM = "you are a helpful assistant."
+SYSTEM = "You are a helpful assistant. If you query the database for records, always put the records as a markdown table."
 
 def flatten(xss):
     return [x for xs in xss for x in xs]
@@ -146,7 +111,7 @@ async def call_llm(chat_messages, api_key):
 
     # Get settings
     settings = cl.user_session.get("settings", {})
-    model = settings.get("Model", "openai/gpt-4o-mini")
+    model = settings.get("Model", "google/gemini-2.0-flash-001")
     temperature = float(settings.get("Temperature", 0))
 
     # Prepare arguments for OpenAI API call
@@ -212,12 +177,12 @@ async def start_chat():
                 id="Model",
                 label="OpenRouter Model",
                 values=[
-                    "openai/gpt-4o-mini",
-                    "openai/gpt-4o",
                     "google/gemini-2.0-flash-001",
                     "google/gemini-2.0-flash-lite-001",
                     "google/gemini-flash-1.5",
                     "google/gemini-flash-1.5-8b",
+                    "openai/gpt-4o-mini",
+                    "openai/gpt-4o",
                     "anthropic/claude-3-haiku"
                 ],
                 initial_index=0,
@@ -235,8 +200,8 @@ async def start_chat():
     
     # Store initial settings values in user session
     initial_settings = {
-        "Model": "openai/gpt-4o-mini",  # Default to first option
-        "Temperature": 0                # Default temperature
+        "Model": "google/gemini-2.0-flash-001",
+        "Temperature": 0                
     }
     cl.user_session.set("settings", initial_settings)
     
@@ -256,19 +221,13 @@ async def on_settings_update(settings):
         cl.user_session.set("env", {"OPENROUTER_API_KEY": settings["api_key"]})
     
     # Get the current model setting
-    model = settings.get("Model", "openai/gpt-4o-mini")
+    model = settings.get("Model", "google/gemini-2.0-flash-001")
     
 @cl.on_message
 async def on_message(msg: cl.Message):
     # Get API key from environment variables in user session
     user_env = cl.user_session.get("env", {})
     api_key = user_env.get("OPENROUTER_API_KEY")
-    
-    # if not api_key:
-    #     # Let Chainlit handle showing the API key dialog by returning silently
-    #     await cl.Message(content="⚠️ OpenRouter API Key not found. Please update your settings.").send()
-    #     return
-            
     chat_messages = cl.user_session.get("chat_messages")
     chat_messages.append({"role": "user", "content": msg.content})
 
