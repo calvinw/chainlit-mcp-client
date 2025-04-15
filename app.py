@@ -49,8 +49,46 @@ initialize_database()
 
 load_dotenv()
 
-# Global variable for the client, will be initialized per session/profile
-openai_client = None
+# Configure project settings in config.toml to require API key
+def modify_config_file():
+    """Add the required API key to the config file if not already there"""
+    import toml
+    import os
+    
+    config_path = os.path.join('.chainlit', 'config.toml')
+    
+    # Create directory if it doesn't exist
+    os.makedirs(os.path.dirname(config_path), exist_ok=True)
+    
+    # Read existing config if it exists
+    config = {}
+    if os.path.exists(config_path):
+        try:
+            with open(config_path, 'r') as f:
+                config = toml.load(f)
+        except Exception as e:
+            logger.error(f"Error reading config file: {str(e)}")
+    
+    # Ensure project section exists
+    if 'project' not in config:
+        config['project'] = {}
+    
+    # Add OpenRouter API key to required user env variables
+    if 'user_env' not in config['project']:
+        config['project']['user_env'] = ["OPENROUTER_API_KEY"]
+    elif "OPENROUTER_API_KEY" not in config['project']['user_env']:
+        config['project']['user_env'].append("OPENROUTER_API_KEY")
+    
+    # Write back the config
+    try:
+        with open(config_path, 'w') as f:
+            toml.dump(config, f)
+        logger.info("Updated config file to require API key")
+    except Exception as e:
+        logger.error(f"Error writing config file: {str(e)}")
+
+# Call the function to modify config
+modify_config_file()
 
 # Define available models globally using the user's list
 AVAILABLE_MODELS = [
@@ -140,22 +178,17 @@ async def call_tool(tool_call): # Parameter changed slightly for clarity
     # Return format expected by OpenAI for tool results
     return {"tool_call_id": tool_call.id, "name": tool_name, "output": json.dumps(str(tool_output))} # Convert tool_output to string
 
-async def get_client():
-    """Gets the OpenAI client, initializing it if necessary."""
-    global openai_client
-
-    api_key = cl.user_session.get("api_key")
+async def get_openai_client(api_key):
+    """Creates a new OpenAI client with the given API key."""
     if not api_key:
-        raise ValueError("API Key not found in session. Ensure it was set at chat start.")
+        raise ValueError("API Key is required to make requests")
+    
+    return openai.AsyncOpenAI(
+        base_url="https://openrouter.ai/api/v1",
+        api_key=api_key,
+    )
 
-    if openai_client is None or openai_client.api_key != api_key:
-         openai_client = openai.AsyncOpenAI(
-             base_url="https://openrouter.ai/api/v1",
-             api_key=api_key,
-         )
-    return openai_client
-
-async def call_llm(chat_messages):
+async def call_llm(chat_messages, api_key):
     msg = cl.Message(content="")
     mcp_openai_tools = cl.user_session.get("mcp_openai_tools", {})
     # Flatten the OpenAI-formatted tools from all MCP connections
@@ -172,8 +205,8 @@ async def call_llm(chat_messages):
         api_args["tools"] = tools
         api_args["tool_choice"] = "auto"
 
-    # Make the API call
-    client = await get_client()
+    # Make the API call with the provided API key for this request
+    client = await get_openai_client(api_key)
     stream_resp = await client.chat.completions.create(**api_args)
 
     # Stream the response
@@ -215,7 +248,7 @@ async def start_chat():
     # Prepare model options for the dropdown
     model_values = [model.split('/')[-1] for model in AVAILABLE_MODELS]
     
-    # Create settings panel with model selector and API key input
+    # Create settings panel with ONLY model selector (no API key here)
     settings = await cl.ChatSettings(
         [
             Select(
@@ -223,19 +256,12 @@ async def start_chat():
                 label="Select Model",
                 values=model_values,
                 initial_index=0
-            ),
-            TextInput(
-                id="api_key_input",
-                label="OpenRouter API Key",
-                initial=os.getenv("OPENROUTER_API_KEY", ""),
-                placeholder="Enter your OpenRouter API Key"
             )
         ]
     ).send()
     
-    # Extract values from settings
+    # Extract model value from settings
     selected_model_name = settings["model_selector"]
-    api_key = settings["api_key_input"].strip()
     
     # Find full model path from the selected name
     for model in AVAILABLE_MODELS:
@@ -245,31 +271,20 @@ async def start_chat():
     else:
         selected_model = AVAILABLE_MODELS[0]  # Default if not found
     
-    # Validate API key
-    if not api_key:
-        await cl.ErrorMessage(content="No API Key provided. Cannot proceed.").send()
-        raise cl.Error("API Key is required")
-
-    # Set session variables
+    # Set session variables for the model and message history
     cl.user_session.set("selected_model", selected_model)
-    cl.user_session.set("api_key", api_key)
     cl.user_session.set("chat_messages", [])
     cl.user_session.set("mcp_tools_data", {})
     cl.user_session.set("mcp_openai_tools", {})
-
+    
     # Welcome message
-    try:
-        await get_client()
-        await cl.Message(content=f"Chat started using model: **{selected_model}**").send()
-    except ValueError as e:
-        await cl.ErrorMessage(content=f"Error initializing client: {e}").send()
+    await cl.Message(content=f"Welcome! Please provide your OpenRouter API Key in the API Keys section (key icon in the top right) before starting. Current model selected: **{selected_model}**").send()
 
 # Settings update handler
 @cl.on_settings_update
 async def on_settings_update(settings):
-    # Extract values from updated settings
+    # Extract model value from settings
     selected_model_name = settings["model_selector"]
-    api_key = settings["api_key_input"].strip()
     
     # Find full model path from the selected name
     for model in AVAILABLE_MODELS:
@@ -279,19 +294,23 @@ async def on_settings_update(settings):
     else:
         selected_model = AVAILABLE_MODELS[0]  # Default if not found
     
-    # Update session variables
+    # Update only the model in session variables
     cl.user_session.set("selected_model", selected_model)
-    cl.user_session.set("api_key", api_key)
     
-    # Update client with new API key
-    try:
-        await get_client()
-        await cl.Message(content=f"Settings updated. Now using model: **{selected_model}**").send()
-    except ValueError as e:
-        await cl.ErrorMessage(content=f"Error updating settings: {e}").send()
+    # Confirm model update
+    await cl.Message(content=f"Settings updated. Now using model: **{selected_model}**").send()
 
 @cl.on_message
 async def on_message(msg: cl.Message):
+    # Get the API key from environment variables section
+    api_keys = cl.user_session.get("_api_keys", {})
+    api_key = api_keys.get("OPENROUTER_API_KEY", "")
+    
+    # Validate API key
+    if not api_key:
+        await cl.ErrorMessage(content="Please provide your OpenRouter API Key in the API Keys section (key icon in the top right) before continuing.").send()
+        return
+    
     chat_messages = cl.user_session.get("chat_messages")
     chat_messages.append({"role": "user", "content": msg.content})
 
@@ -300,7 +319,7 @@ async def on_message(msg: cl.Message):
 
     while True:
         messages_for_api = [msg for msg in chat_messages if msg.get("role") != "system"]
-        assistant_message = await call_llm(messages_for_api)
+        assistant_message = await call_llm(messages_for_api, api_key)
         chat_messages.append(assistant_message)
 
         if not assistant_message.get("tool_calls"):
