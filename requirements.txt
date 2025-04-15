@@ -2,4 +2,4 @@ chainlit==2.4.0
 anthropic
 openai>=1.0.0
 python-dotenv
-mcp-sqlite-server
+mcp-server-sqlite
