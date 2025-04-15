@@ -99,14 +99,13 @@ INSERT INTO orders (order_id, product_id, customer_name, quantity, order_date, i
 
 ## Prompts to Try 
 
-```
-Can you tell me what tables are in the database?
-```
+> Can you tell me what tables are in the database?
 
-```
-Can you describe the schema of the products table?
-```
+> Can you describe the schema of the products table?
+
+## Example Chat Logs About Database
 
 Here is an [Example Chat Log](https://calvinw.github.io/chainlit-mcp-client/example_chat_with_sqlite_mcp_server.html) about the database
 
+Here is an example [Show SQL and Tables Info](https://calvinw.github.io/chainlit-mcp-client/list_all_sql_and_table_state.html) showing that the LLM can list the SQL commands it performs and the state of the tables afterwards. 
 
