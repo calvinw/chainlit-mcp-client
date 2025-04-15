@@ -152,7 +152,12 @@ async def call_llm(chat_messages, api_key):
     # Prepare arguments for OpenAI API call
     api_args = {
         "model": model,
-        "messages": [{"role": "system", "content": SYSTEM}] + chat_messages,
+        "messages": [
+                     {
+                      "role": "system", 
+                      "content": SYSTEM
+                      }
+                     ] + chat_messages,
         "temperature": temperature,
         "stream": True,
     }
@@ -253,19 +258,16 @@ async def on_settings_update(settings):
     # Get the current model setting
     model = settings.get("Model", "openai/gpt-4o-mini")
     
-    # Confirm settings update
-    await cl.Message(content=f"Settings updated. Now using model: **{model}**").send()
-
 @cl.on_message
 async def on_message(msg: cl.Message):
     # Get API key from environment variables in user session
     user_env = cl.user_session.get("env", {})
     api_key = user_env.get("OPENROUTER_API_KEY")
     
-    if not api_key:
-        # Let Chainlit handle showing the API key dialog by returning silently
-        await cl.Message(content="⚠️ OpenRouter API Key not found. Please update your settings.").send()
-        return
+    # if not api_key:
+    #     # Let Chainlit handle showing the API key dialog by returning silently
+    #     await cl.Message(content="⚠️ OpenRouter API Key not found. Please update your settings.").send()
+    #     return
             
     chat_messages = cl.user_session.get("chat_messages")
     chat_messages.append({"role": "user", "content": msg.content})

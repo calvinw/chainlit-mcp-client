@@ -1,5 +1,7 @@
 # MCP Sqlite Server 
 
+The first time you run, you have to install the sqlite mcp server.
+
 Click on the plug icon and enter
 
 ### Name 
@@ -95,3 +97,12 @@ INSERT INTO orders (order_id, product_id, customer_name, quantity, order_date, i
 (10, 6, 'Lisa Anderson', 3, '2025-04-13 12:25:00', 0);
 ```
 
+## Prompts to Try 
+
+```
+Can you tell me what tables are in the database?
+```
+
+```
+Can you describe the schema of the products table?
+```
