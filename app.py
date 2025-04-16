@@ -183,6 +183,9 @@ async def start_chat():
                     "google/gemini-flash-1.5-8b",
                     "openai/gpt-4o-mini",
                     "openai/gpt-4o",
+                    "openai/gpt-4.1-mini",
+                    "openai/gpt-4.1-nano",
+                    "openai/gpt-4.1",
                     "anthropic/claude-3-haiku"
                 ],
                 initial_index=0,
