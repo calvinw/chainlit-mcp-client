@@ -214,6 +214,8 @@ async def start_chat():
                     "openai/gpt-4.1-mini",
                     "openai/gpt-4.1-nano",
                     "openai/gpt-4.1",
+                    "openai/o4-mini",
+                    "openai/o4",
                     "anthropic/claude-3-haiku"
                 ],
                 initial_index=0,
