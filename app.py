@@ -53,16 +53,33 @@ async def on_mcp(connection, session: ClientSession):
     cl.user_session.set("mcp_openai_tools", mcp_openai_tools)
 
 @cl.step(type="tool")
-async def call_tool(tool_call): # Parameter changed slightly for clarity
+async def call_tool(tool_call):
+    # Get tool name from the function call
     tool_name = tool_call.function.name
-    tool_input = json.loads(tool_call.function.arguments) # OpenAI sends arguments as JSON string
+    
+    # Add validation to handle empty or invalid arguments
+    try:
+        if not hasattr(tool_call.function, 'arguments') or not tool_call.function.arguments or tool_call.function.arguments.strip() == "":
+            tool_input = {}  # Default to empty dict if no arguments
+            logger.info(f"Empty arguments for tool {tool_name}, using empty dict")
+        else:
+            tool_input = json.loads(tool_call.function.arguments)
+    except json.JSONDecodeError:
+        # Log the problematic value
+        logger.error(f"Invalid JSON in arguments: '{tool_call.function.arguments}'")
+        # For some tools, you might be able to infer the needed structure
+        if tool_name == "query_sql":
+            # Default structure for SQL queries - empty query will list tables
+            tool_input = {"sql": ""}
+        else:
+            tool_input = {}  # Use empty dict as fallback
 
     current_step = cl.context.current_step
     current_step.name = tool_name
-    current_step.input = tool_input # Log the parsed input
+    current_step.input = tool_input  # Log the parsed input
 
     # Identify which mcp is used
-    mcp_tools_data = cl.user_session.get("mcp_tools_data", {}) # Use raw data for lookup
+    mcp_tools_data = cl.user_session.get("mcp_tools_data", {})  # Use raw data for lookup
     mcp_name = None
 
     for connection_name, tools in mcp_tools_data.items():
@@ -73,25 +90,36 @@ async def call_tool(tool_call): # Parameter changed slightly for clarity
     if not mcp_name:
         error_msg = json.dumps({"error": f"Tool {tool_name} not found in any MCP connection"})
         current_step.output = error_msg
-        return {"tool_call_id": tool_call.id, "name": tool_name, "output": error_msg} # Return format for OpenAI
+        return {"tool_call_id": tool_call.id, "name": tool_name, "output": error_msg}  # Return format for OpenAI
 
     mcp_session, _ = cl.context.session.mcp_sessions.get(mcp_name)
 
     if not mcp_session:
         error_msg = json.dumps({"error": f"MCP {mcp_name} session not found"})
         current_step.output = error_msg
-        return {"tool_call_id": tool_call.id, "name": tool_name, "output": error_msg} # Return format for OpenAI
+        return {"tool_call_id": tool_call.id, "name": tool_name, "output": error_msg}  # Return format for OpenAI
 
     try:
+        # Log what we're about to do
+        logger.info(f"Calling tool {tool_name} with input: {tool_input}")
+        
+        # Call the tool with validated input
         tool_output = await mcp_session.call_tool(tool_name, tool_input)
-        current_step.output = tool_output # Log the actual output
+        current_step.output = tool_output  # Log the actual output
+        
+        # Log successful output
+        logger.info(f"Tool {tool_name} returned successfully")
     except Exception as e:
+        # Handle and log any exceptions during tool execution
+        logger.error(f"Error calling tool {tool_name}: {str(e)}")
         error_msg = json.dumps({"error": str(e)})
         current_step.output = error_msg
-        tool_output = error_msg # Send error back to OpenAI
+        tool_output = error_msg  # Send error back to OpenAI
 
     # Return format expected by OpenAI for tool results
-    return {"tool_call_id": tool_call.id, "name": tool_name, "output": json.dumps(str(tool_output))} # Convert tool_output to string
+    # Ensure the output is properly JSON-serialized as a string
+    return {"tool_call_id": tool_call.id, "name": tool_name, "output": json.dumps(str(tool_output))}
+
 
 async def get_openai_client(api_key):
     """Creates a new OpenAI client with the given API key."""
