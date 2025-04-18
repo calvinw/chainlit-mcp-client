@@ -16,7 +16,7 @@ logger = logging.getLogger(__name__)
 
 load_dotenv()
 
-SYSTEM = "You are a helpful assistant. If you query the database for records, always put the records as a markdown table. Each time you use a tool or take an action print out the SQL you intend to use and ask permission to proceed. Only proceed after the user has okayed it."
+SYSTEM = "You are a helpful assistant. Make sure you put rows from queries into an markdown table for presentation. Lists of tables can be a markdown list. You can execute any read only query in read_query."
 
 def flatten(xss):
     return [x for xs in xss for x in xs]
@@ -24,14 +24,12 @@ def flatten(xss):
 @cl.set_starters
 async def set_starters():
     return [
-        cl.Starter(label="Describe Tables", 
-                   message="Can you describe the tables in the database?"),
-        cl.Starter(label="Show Rows", 
-                   message="First find all the tables then show all rows in all tables?"),
-        cl.Starter(label="Schemas", 
-                   message="First find all the tables, then show the schemas of the tables?"),
-        cl.Starter(label="CREATE statements", 
-                   message="First find all the tables, then show the Create Statements for the tables?")
+        cl.Starter(label="List Tables", 
+                   message="Can you list the tables in the database?"),
+        cl.Starter(label="Show Amazon Financials", 
+                   message="Show all rows of the financials table for company Amazon. Do the same for the new_financial_metrics"),
+        cl.Starter(label="Show Schemas", 
+                   message="Can you show the schemas of financials and new_financial_metrics"),
     ]
 
 # Convert MCP tool schema to OpenAI tool schema
@@ -103,46 +101,68 @@ async def call_tool(tool_call):
     if not mcp_name:
         error_msg = json.dumps({"error": f"Tool {tool_name} not found in any MCP connection"})
         current_step.output = error_msg
-        return {"tool_call_id": tool_call.id, "name": tool_name, "output": error_msg}  # Return format for OpenAI
+        return {"tool_call_id": tool_call.id, "name": tool_name, "output": error_msg}
 
-    mcp_session, _ = cl.context.session.mcp_sessions.get(mcp_name)
-
-    if not mcp_session:
-        error_msg = json.dumps({"error": f"MCP {mcp_name} session not found"})
+    # Get MCP session with better error handling
+    session_tuple = cl.context.session.mcp_sessions.get(mcp_name)
+    if not session_tuple:
+        error_msg = json.dumps({"error": f"MCP session for {mcp_name} not found"})
         current_step.output = error_msg
-        return {"tool_call_id": tool_call.id, "name": tool_name, "output": error_msg}  # Return format for OpenAI
+        return {"tool_call_id": tool_call.id, "name": tool_name, "output": error_msg}
+
+    mcp_session, _ = session_tuple
 
     try:
-        # Log what we're about to do
-        # logger.info(f"Calling tool {tool_name} with input: {tool_input}")
-        
         # Call the tool with validated input
         tool_output = await mcp_session.call_tool(tool_name, tool_input)
-        current_step.output = tool_output  # Log the actual output
         
-        # Log successful output
-        # logger.info(f"Tool {tool_name} returned successfully")
+        # Special case for list_tables to extract just the table names
+        if tool_name == "list_tables" and tool_output is not None:
+            # Extract the content field which contains TextContent objects
+            if hasattr(tool_output, 'content') and tool_output.content:
+                # Find the TextContent object
+                for item in tool_output.content:
+                    if hasattr(item, 'text'):
+                        # This is what we want - just the table names text
+                        result_text = item.text
+                        break
+                else:
+                    # If we didn't find a TextContent with text attribute
+                    result_text = "No tables found"
+            else:
+                # Fallback if content is not available
+                result_text = "Unable to retrieve tables"
+        
+        # For all other tools, use the standard extraction logic
+        else:
+            # Extract the text content from the CallToolResult object
+            if tool_output is not None:
+                # If it's an iterable (like a list), join the text of each item
+                if hasattr(tool_output, '__iter__') and not isinstance(tool_output, str):
+                    result_text = "\n".join([str(item.text) if hasattr(item, 'text') else str(item) for item in tool_output])
+                # If it has a text attribute directly
+                elif hasattr(tool_output, 'text'):
+                    result_text = tool_output.text
+                else:
+                    result_text = str(tool_output)
+            else:
+                result_text = "No output returned"
+            
+        current_step.output = result_text  # Log the extracted text
+        
     except Exception as e:
         # Handle and log any exceptions during tool execution
         logger.error(f"Error calling tool {tool_name}: {str(e)}")
         error_msg = json.dumps({"error": str(e)})
         current_step.output = error_msg
-        tool_output = error_msg  # Send error back to OpenAI
+        result_text = error_msg  # Send error back to OpenAI
 
     # Return format expected by OpenAI for tool results
-    # Ensure the output is properly JSON-serialized as a string
-    
-# More robust handling
-    try:
-        # If it's already a string that looks like JSON
-        if isinstance(tool_output, str) and (tool_output.startswith('{') or tool_output.startswith('[')):
-            return {"tool_call_id": tool_call.id, "name": tool_name, "output": tool_output}
-        else:
-            # Otherwise serialize it
-            return {"tool_call_id": tool_call.id, "name": tool_name, "output": json.dumps(tool_output)}
-    except Exception as e:
-        logger.error(f"Error serializing tool output: {e}")
-        return {"tool_call_id": tool_call.id, "name": tool_name, "output": str(tool_output)}
+    return {
+        "tool_call_id": tool_call.id, 
+        "name": tool_name, 
+        "output": json.dumps(result_text)
+    }
 
 async def get_openai_client(api_key):
     """Creates a new OpenAI client with the given API key."""
