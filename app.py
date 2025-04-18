@@ -131,8 +131,18 @@ async def call_tool(tool_call):
 
     # Return format expected by OpenAI for tool results
     # Ensure the output is properly JSON-serialized as a string
-    return {"tool_call_id": tool_call.id, "name": tool_name, "output": json.dumps(str(tool_output))}
-
+    
+# More robust handling
+    try:
+        # If it's already a string that looks like JSON
+        if isinstance(tool_output, str) and (tool_output.startswith('{') or tool_output.startswith('[')):
+            return {"tool_call_id": tool_call.id, "name": tool_name, "output": tool_output}
+        else:
+            # Otherwise serialize it
+            return {"tool_call_id": tool_call.id, "name": tool_name, "output": json.dumps(tool_output)}
+    except Exception as e:
+        logger.error(f"Error serializing tool output: {e}")
+        return {"tool_call_id": tool_call.id, "name": tool_name, "output": str(tool_output)}
 
 async def get_openai_client(api_key):
     """Creates a new OpenAI client with the given API key."""
