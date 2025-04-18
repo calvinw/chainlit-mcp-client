@@ -1,0 +1,28 @@
+import chainlit as cl
+
+@cl.on_chat_start
+async def start():
+    actions = [
+        cl.Action(
+            name="followup_prompt_1",
+            value="Tell me more about...",
+            label="Tell me more",
+        ),
+        cl.Action(
+            name="followup_prompt_2",
+            value="Explain it simply",
+            label="Explain it simply",
+        ),
+    ]
+    await cl.Message(content="Choose a follow-up prompt:", actions=actions).send()
+
+
+@cl.action_callback("followup_prompt_1")
+async def on_followup_prompt_1(action):
+    await cl.Message(content="You clicked Tell me more!").send()
+
+@cl.action_callback("followup_prompt_2")
+async def on_followup_prompt_2(action):
+    await cl.Message(content="You clicked Explain it simply!").send()
+
+

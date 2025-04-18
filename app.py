@@ -16,10 +16,23 @@ logger = logging.getLogger(__name__)
 
 load_dotenv()
 
-SYSTEM = "You are a helpful assistant. If you query the database for records, always put the records as a markdown table."
+SYSTEM = "You are a helpful assistant. If you query the database for records, always put the records as a markdown table. Each time you use a tool or take an action print out the SQL you intend to use and ask permission to proceed. Only proceed after the user has okayed it."
 
 def flatten(xss):
     return [x for xs in xss for x in xs]
+
+@cl.set_starters
+async def set_starters():
+    return [
+        cl.Starter(label="Describe Tables", 
+                   message="Can you describe the tables in the database?"),
+        cl.Starter(label="Show Rows", 
+                   message="First find all the tables then show all rows in all tables?"),
+        cl.Starter(label="Schemas", 
+                   message="First find all the tables, then show the schemas of the tables?"),
+        cl.Starter(label="CREATE statements", 
+                   message="First find all the tables, then show the Create Statements for the tables?")
+    ]
 
 # Convert MCP tool schema to OpenAI tool schema
 def mcp_to_openai_tool(mcp_tool):
@@ -61,7 +74,7 @@ async def call_tool(tool_call):
     try:
         if not hasattr(tool_call.function, 'arguments') or not tool_call.function.arguments or tool_call.function.arguments.strip() == "":
             tool_input = {}  # Default to empty dict if no arguments
-            logger.info(f"Empty arguments for tool {tool_name}, using empty dict")
+            # logger.info(f"Empty arguments for tool {tool_name}, using empty dict")
         else:
             tool_input = json.loads(tool_call.function.arguments)
     except json.JSONDecodeError:
@@ -101,14 +114,14 @@ async def call_tool(tool_call):
 
     try:
         # Log what we're about to do
-        logger.info(f"Calling tool {tool_name} with input: {tool_input}")
+        # logger.info(f"Calling tool {tool_name} with input: {tool_input}")
         
         # Call the tool with validated input
         tool_output = await mcp_session.call_tool(tool_name, tool_input)
         current_step.output = tool_output  # Log the actual output
         
         # Log successful output
-        logger.info(f"Tool {tool_name} returned successfully")
+        # logger.info(f"Tool {tool_name} returned successfully")
     except Exception as e:
         # Handle and log any exceptions during tool execution
         logger.error(f"Error calling tool {tool_name}: {str(e)}")
@@ -139,7 +152,7 @@ async def call_llm(chat_messages, api_key):
 
     # Get settings
     settings = cl.user_session.get("settings", {})
-    model = settings.get("Model", "google/gemini-2.0-flash-001")
+    model = settings.get("Model")
     temperature = float(settings.get("Temperature", 0))
 
     # Prepare arguments for OpenAI API call
@@ -209,14 +222,14 @@ async def start_chat():
                     "google/gemini-2.0-flash-lite-001",
                     "google/gemini-flash-1.5",
                     "google/gemini-flash-1.5-8b",
+                    "anthropic/claude-3-haiku",
                     "openai/gpt-4o-mini",
                     "openai/gpt-4o",
                     "openai/gpt-4.1-mini",
                     "openai/gpt-4.1-nano",
                     "openai/gpt-4.1",
                     "openai/o4-mini",
-                    "openai/o4",
-                    "anthropic/claude-3-haiku"
+                    "openai/o4"
                 ],
                 initial_index=0,
             ),
@@ -254,7 +267,7 @@ async def on_settings_update(settings):
         cl.user_session.set("env", {"OPENROUTER_API_KEY": settings["api_key"]})
     
     # Get the current model setting
-    model = settings.get("Model", "google/gemini-2.0-flash-001")
+    model = settings.get("Model")
     
 @cl.on_message
 async def on_message(msg: cl.Message):
