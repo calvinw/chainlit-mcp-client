@@ -224,13 +224,13 @@ async def start_chat():
                     "google/gemini-flash-1.5",
                     "google/gemini-flash-1.5-8b",
                     "anthropic/claude-3-haiku",
+                    "openai/o4-mini",
+                    "openai/o4",
                     "openai/gpt-4o-mini",
                     "openai/gpt-4o",
                     "openai/gpt-4.1-mini",
                     "openai/gpt-4.1-nano",
-                    "openai/gpt-4.1",
-                    "openai/o4-mini",
-                    "openai/o4"
+                    "openai/gpt-4.1"
                 ],
                 initial_index=0,
             ),
@@ -247,7 +247,7 @@ async def start_chat():
     
     # Store initial settings values in user session
     initial_settings = {
-        "Model": "google/gemini-2.0-flash-001",
+        "Model": "google/gemini-2.5-flash-preview",
         "Temperature": 0                
     }
     cl.user_session.set("settings", initial_settings)
