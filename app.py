@@ -218,6 +218,7 @@ async def start_chat():
                 id="Model",
                 label="OpenRouter Model",
                 values=[
+                    "google/gemini-2.5-flash-preview",
                     "google/gemini-2.0-flash-001",
                     "google/gemini-2.0-flash-lite-001",
                     "google/gemini-flash-1.5",
