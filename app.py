@@ -16,7 +16,7 @@ logger = logging.getLogger(__name__)
 
 load_dotenv()
 
-SYSTEM = "You are a helpful assistant. Make sure you put rows from queries into an markdown table for presentation. Lists of tables can be a markdown list. You can execute any read only query in read_query."
+SYSTEM = "You are a helpful assistant working on MySQL queries with a user. Make sure you put rows from queries into an markdown table for presentation. Lists of tables can be a markdown list. You can execute any read only query in read_query. Be sure and use backticks for column names since this is MySQL."
 
 def flatten(xss):
     return [x for xs in xss for x in xs]
