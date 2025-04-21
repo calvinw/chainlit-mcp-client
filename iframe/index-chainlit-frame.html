@@ -1,0 +1,345 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Resizable Two-Panel App</title>
+<style>
+  /* Basic styling for the body to enable flexbox layout */
+  body {
+    margin: 0; /* Remove default body margin */
+    overflow: hidden; /* Hide potential overflow issues during resizing */
+    display: flex; /* Use flexbox for panel layout */
+    height: 100vh; /* Make the body take the full viewport height */
+  }
+
+  /* Styling for the left panel */
+  #left-panel {
+    overflow-y: auto; /* Add vertical scrollbar if content overflows */
+    padding: 10px; /* Add some padding inside the panel */
+    background-color: #f0f0f0; /* Subtle background color for visual separation */
+    flex-shrink: 0; /* Prevent the left panel from shrinking */
+    /* Initial width will be set by JavaScript */
+  }
+
+  /* Styling for the divider bar */
+  #divider {
+    width: 5px; /* Set the width of the divider */
+    cursor: col-resize; /* Change cursor to indicate horizontal resizing */
+    background-color: #ccc; /* Grey background for the divider */
+    flex-shrink: 0; /* Prevent the divider from shrinking */
+  }
+
+  /* Styling for the right panel */
+  #right-panel {
+    flex-grow: 1; /* Allow the right panel to grow and take available space */
+    overflow: hidden; /* Hide potential overflow within the right panel */
+    display: flex; /* Use flexbox for iframe to fill the panel */
+    flex-direction: column; /* Stack iframe vertically within the panel */
+    flex-shrink: 0; /* Prevent the right panel from shrinking */
+  }
+
+  /* Styling for the iframe within the right panel */
+  #right-panel iframe {
+    width: 100%; /* Make the iframe fill the width of its container */
+    flex-grow: 1; /* Make the iframe grow to fill the height of its container */
+    border: none; /* Remove default iframe border */
+  }
+</style>
+<script src="https://cdn.tailwindcss.com"></script>
+<style>
+/* Custom scrollbar styling */
+::-webkit-scrollbar { width: 8px; height: 8px; }
+::-webkit-scrollbar-track { background: #f1f1f1; border-radius: 10px; }
+::-webkit-scrollbar-thumb { background: #888; border-radius: 10px; }
+::-webkit-scrollbar-thumb:hover { background: #555; }
+/* Ensure body takes full height */
+html, body { height: 100%; margin: 0; font-family: 'Inter', sans-serif; }
+/* Main container layout */
+#main-container {
+     height: calc(100vh - 2rem); /* Full viewport height minus padding */
+     display: flex;
+     flex-direction: column;
+}
+/* Style for active tab */
+.tab-button.active {
+    border-color: #4f46e5; /* indigo-600 */
+    color: #4f46e5;
+    background-color: #eef2ff; /* indigo-50 */
+}
+/* Style for inactive tab */
+.tab-button {
+    border-color: transparent;
+}
+/* Hide inactive tab content */
+.tab-content { display: none; }
+.tab-content.active { display: block; }
+/* Ensure table container within tab content stretches */
+.tab-content > div {
+     height: 100%;
+     display: flex;
+     flex-direction: column;
+}
+.tab-content .table-wrapper {
+    flex-grow: 1; /* Make table wrapper take available space */
+    overflow-y: auto; /* Add scroll only to the table wrapper */
+    border: 1px solid #e5e7eb; /* border-gray-200 */
+    border-radius: 0.5rem; /* rounded-lg */
+}
+.tab-content table {
+    min-width: 100%;
+}
+.tab-content thead {
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    background-color: #f9fafb; /* bg-gray-50 */
+}
+</style>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+
+<div id="left-panel">
+  <div id="main-container" class="bg-white p-6 rounded-lg shadow-lg w-full h-full flex flex-col">
+    <div id="tab-navigation" class="mb-4 border-b border-gray-200 flex-shrink-0">
+      <nav class="-mb-px flex space-x-4" aria-label="Tabs"></nav>
+    </div>
+    <div id="tab-content-area" class="flex-grow overflow-hidden"></div>
+    <div id="general-error-message" class="mt-4 text-red-600 text-center flex-shrink-0"></div>
+  </div>
+</div>
+
+<div id="divider"></div>
+
+<div id="right-panel">
+  <iframe src="https://chainlit-mcp-client.fly.dev"></iframe>
+</div>
+
+<script>
+  // Get references to the elements
+  const divider = document.getElementById('divider');
+  const leftPanel = document.getElementById('left-panel');
+  const rightPanel = document.getElementById('right-panel');
+
+  // Variables to track resizing state
+  let isResizing = false;
+  let lastDownX = 0; // Stores the mouse X position when resizing starts
+  let initialLeftWidth = 0; // Stores the left panel width when resizing starts
+
+  // Set initial width for the left panel on page load
+  leftPanel.style.width = (document.body.offsetWidth / 2) - (divider.offsetWidth / 2) + 'px';
+
+
+  // Add event listener for mouse down on the divider
+  divider.addEventListener('mousedown', function(e) {
+    isResizing = true; // Set resizing flag to true
+    lastDownX = e.clientX; // Record the starting mouse X position
+    initialLeftWidth = leftPanel.offsetWidth; // Record the initial width of the left panel
+    document.body.style.cursor = 'col-resize'; // Change cursor for visual feedback
+    // Prevent text selection during drag
+    document.body.style.userSelect = 'none';
+    document.body.style.pointerEvents = 'none';
+  });
+
+  // Add event listener for mouse move on the whole document
+  document.addEventListener('mousemove', function(e) {
+    if (!isResizing) return; // If not resizing, do nothing
+
+    const deltaX = e.clientX - lastDownX; // Calculate the horizontal movement
+    const newLeftWidth = initialLeftWidth + deltaX; // Calculate the new width for the left panel
+
+    // Optional: Add constraints to prevent panels from becoming too small
+    const minWidth = 100; // Minimum width for each panel
+    const containerWidth = document.body.offsetWidth; // Total width of the container
+    const dividerWidth = divider.offsetWidth; // Width of the divider
+
+    // Check if the new width is within the allowed range
+    if (newLeftWidth > minWidth && (containerWidth - newLeftWidth - dividerWidth) > minWidth) {
+      leftPanel.style.width = newLeftWidth + 'px'; // Set the new width of the left panel
+      // No need to change flex-grow here, the width will override it while set
+    }
+  });
+
+  // Add event listener for mouse up on the whole document
+  document.addEventListener('mouseup', function() {
+    isResizing = false; // Set resizing flag to false
+    document.body.style.cursor = ''; // Restore default cursor
+    // Re-enable text selection and pointer events
+    document.body.style.userSelect = '';
+    document.body.style.pointerEvents = '';
+    // The left panel will retain its calculated width, and the right panel's flex-grow will handle the rest.
+  });
+</script>
+<script>
+  // --- Configuration for Tables ---
+  const tableConfigs = [
+      {
+          name: "Channels",
+          url: "https://www.dolthub.com/api/v1alpha1/calvinw/engagement/main?q=SELECT+*%0AFROM+%60channels%60%0AORDER+BY+%60channel_id%60+ASC%0ALIMIT+1000%3B%0A",
+          idPrefix: "channels",
+          loaded: false
+      },
+      {
+          name: "Interactions",
+          url: "https://www.dolthub.com/api/v1alpha1/calvinw/engagement/main?q=SELECT+*%0AFROM+%60interactions%60%0AORDER+BY+%60interaction_id%60+ASC%0ALIMIT+1000%3B%0A",
+          idPrefix: "interactions",
+          loaded: false
+      },
+      {
+          name: "Users",
+          url: "https://www.dolthub.com/api/v1alpha1/calvinw/engagement/main?q=SELECT+*%0AFROM+%60users%60%0AORDER+BY+%60user_id%60+ASC%0ALIMIT+1000%3B%0A",
+          idPrefix: "users",
+          loaded: false
+      }
+      // Add more table objects here if needed
+  ];
+
+  // --- DOM References ---
+  const tabNavigation = document.getElementById('tab-navigation');
+  const tabContentArea = document.getElementById('tab-content-area');
+  const generalErrorMessageDiv = document.getElementById('general-error-message');
+
+  // --- Function to Fetch Data and Populate a Specific Table ---
+  async function fetchDataAndPopulateTable(config) {
+      const tableHeaders = document.getElementById(`${config.idPrefix}-table-headers`);
+      const tableBody = document.getElementById(`${config.idPrefix}-table-body`);
+      const loadingIndicator = document.getElementById(`${config.idPrefix}-loading`);
+      const tabErrorDiv = document.getElementById(`${config.idPrefix}-error`);
+
+      if (!tableHeaders || !tableBody || !loadingIndicator || !tabErrorDiv) {
+          console.error(`Table elements not found for prefix: ${config.idPrefix}`);
+          generalErrorMessageDiv.textContent = `Error: Could not find table elements for ${config.name}.`;
+          return;
+      }
+
+      loadingIndicator.style.display = 'table-row';
+      tabErrorDiv.textContent = '';
+      tableBody.innerHTML = '';
+      tableHeaders.innerHTML = '';
+
+      try {
+          const response = await fetch(config.url);
+          if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+          const data = await response.json();
+          if (!data || !Array.isArray(data.rows)) throw new Error('Invalid data format received from API.');
+
+          loadingIndicator.style.display = 'none';
+          if (data.rows.length === 0) {
+              tableBody.innerHTML = `<tr><td colspan="100%" class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 text-center">No data found for ${config.name}.</td></tr>`;
+              if (data.schema && Array.isArray(data.schema)) {
+                  data.schema.forEach(col => {
+                      const th = document.createElement('th');
+                      th.scope = 'col';
+                      th.className = 'px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider';
+                      th.textContent = col.columnName || 'N/A';
+                      tableHeaders.appendChild(th);
+                  });
+              } else if (data.rows.length > 0 && typeof data.rows[0] === 'object') {
+                  Object.keys(data.rows[0]).forEach(header => {
+                      const th = document.createElement('th');
+                      th.scope = 'col';
+                      th.className = 'px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider';
+                      th.textContent = header;
+                      tableHeaders.appendChild(th);
+                  });
+              }
+              return;
+          }
+
+          const rows = data.rows;
+          let headers = [];
+          if (data.schema && Array.isArray(data.schema)) {
+              headers = data.schema.map(col => col.columnName);
+          } else {
+              headers = Object.keys(rows[0]);
+          }
+
+          tableHeaders.innerHTML = '';
+          headers.forEach(header => {
+              const th = document.createElement('th');
+              th.scope = 'col';
+              th.className = 'px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider';
+              th.textContent = header;
+              tableHeaders.appendChild(th);
+          });
+
+          tableBody.innerHTML = '';
+          rows.forEach((row, index) => {
+              const tr = document.createElement('tr');
+              tr.className = index % 2 === 0 ? 'bg-white' : 'bg-gray-50';
+              headers.forEach(header => {
+                  const td = document.createElement('td');
+                  td.className = 'px-6 py-4 whitespace-nowrap text-sm text-gray-700';
+                  td.textContent = row[header] ?? 'N/A';
+                  tr.appendChild(td);
+              });
+              tableBody.appendChild(tr);
+          });
+
+          config.loaded = true;
+      } catch (error) {
+          console.error(`Error fetching or processing data for ${config.name}:`, error);
+          tabErrorDiv.textContent = `Failed to load data: ${error.message}.`;
+          loadingIndicator.style.display = 'none';
+          generalErrorMessageDiv.textContent = `An error occurred while loading data for ${config.name}.`;
+      }
+  }
+
+  // --- Function to Switch Tabs ---
+  function switchTab(targetIdPrefix) {
+      document.querySelectorAll('.tab-button').forEach(button => {
+          button.classList.toggle('active', button.dataset.target === targetIdPrefix);
+      });
+      document.querySelectorAll('.tab-content').forEach(content => {
+          content.classList.toggle('active', content.id === `${targetIdPrefix}-content`);
+      });
+      const selectedConfig = tableConfigs.find(c => c.idPrefix === targetIdPrefix);
+      if (selectedConfig && !selectedConfig.loaded) {
+          fetchDataAndPopulateTable(selectedConfig);
+      }
+      generalErrorMessageDiv.textContent = '';
+  }
+
+  // --- Initialize Tabs and Content Areas ---
+  function initializeTabs() {
+      const nav = tabNavigation.querySelector('nav');
+      nav.innerHTML = '';
+      tabContentArea.innerHTML = '';
+
+      tableConfigs.forEach((config, index) => {
+          const button = document.createElement('button');
+          button.className = 'tab-button whitespace-nowrap py-3 px-4 border-b-2 font-medium text-sm text-gray-500 hover:text-gray-700 hover:border-gray-300 focus:outline-none';
+          button.textContent = config.name;
+          button.dataset.target = config.idPrefix;
+          button.onclick = () => switchTab(config.idPrefix);
+          nav.appendChild(button);
+
+          const contentDiv = document.createElement('div');
+          contentDiv.id = `${config.idPrefix}-content`;
+          contentDiv.className = 'tab-content h-full';
+          contentDiv.innerHTML = `
+              <div class="table-wrapper">
+                  <table class="divide-y divide-gray-200">
+                      <thead class="bg-gray-50"><tr id="${config.idPrefix}-table-headers"></tr></thead>
+                      <tbody id="${config.idPrefix}-table-body" class="bg-white divide-y divide-gray-200">
+                          <tr id="${config.idPrefix}-loading"><td colspan="100%" class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 text-center">Loading ${config.name} data...</td></tr>
+                      </tbody>
+                  </table>
+              </div>
+              <div id="${config.idPrefix}-error" class="mt-2 text-red-500 text-sm flex-shrink-0"></div>
+          `;
+          tabContentArea.appendChild(contentDiv);
+
+          if (index === 0) {
+              button.classList.add('active');
+              contentDiv.classList.add('active');
+              fetchDataAndPopulateTable(config);
+          }
+      });
+  }
+
+  document.addEventListener('DOMContentLoaded', initializeTabs);
+</script>
+
+</body>
+</html>
+

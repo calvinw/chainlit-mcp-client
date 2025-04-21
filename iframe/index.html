@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DoltHub Data Viewer</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* Custom scrollbar styling */
+        ::-webkit-scrollbar { width: 8px; height: 8px; }
+        ::-webkit-scrollbar-track { background: #f1f1f1; border-radius: 10px; }
+        ::-webkit-scrollbar-thumb { background: #888; border-radius: 10px; }
+        ::-webkit-scrollbar-thumb:hover { background: #555; }
+
+        /* Ensure body takes full height */
+        html, body { height: 100%; margin: 0; font-family: 'Inter', sans-serif; }
+
+        /* Main container layout */
+        #main-container {
+             height: calc(100vh - 2rem); /* Full viewport height minus padding */
+             display: flex;
+             flex-direction: column;
+        }
+
+        /* Style for active tab */
+        .tab-button.active {
+            border-color: #4f46e5; /* indigo-600 */
+            color: #4f46e5;
+            background-color: #eef2ff; /* indigo-50 */
+        }
+        /* Style for inactive tab */
+        .tab-button {
+            border-color: transparent;
+        }
+        /* Hide inactive tab content */
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+
+        /* Ensure table container within tab content stretches */
+        .tab-content > div {
+             height: 100%;
+             display: flex;
+             flex-direction: column;
+        }
+         .tab-content .table-wrapper {
+            flex-grow: 1; /* Make table wrapper take available space */
+            overflow-y: auto; /* Add scroll only to the table wrapper */
+            border: 1px solid #e5e7eb; /* border-gray-200 */
+            border-radius: 0.5rem; /* rounded-lg */
+         }
+         .tab-content table {
+            min-width: 100%;
+         }
+          .tab-content thead {
+            position: sticky;
+            top: 0;
+            z-index: 10;
+            background-color: #f9fafb; /* bg-gray-50 */
+         }
+
+    </style>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body class="bg-gray-100 p-4">
+
+    <div id="main-container" class="bg-white p-6 rounded-lg shadow-lg w-full">
+
+        <div id="tab-navigation" class="mb-4 border-b border-gray-200 flex-shrink-0">
+            <nav class="-mb-px flex space-x-4" aria-label="Tabs">
+                </nav>
+        </div>
+
+        <div id="tab-content-area" class="flex-grow overflow-hidden">
+            </div>
+
+        <div id="general-error-message" class="mt-4 text-red-600 text-center flex-shrink-0"></div>
+
+    </div>
+
+    <script>
+        // --- Configuration for Tables ---
+        const tableConfigs = [
+            {
+                name: "Channels", // Tab name
+                url: "https://www.dolthub.com/api/v1alpha1/calvinw/engagement/main?q=SELECT+*%0AFROM+%60channels%60%0AORDER+BY+%60channel_id%60+ASC%0ALIMIT+1000%3B%0A",
+                idPrefix: "channels", // Unique prefix for element IDs
+                loaded: false // Flag to track if data is loaded
+            },
+            {
+                name: "Interactions",
+                url: "https://www.dolthub.com/api/v1alpha1/calvinw/engagement/main?q=SELECT+*%0AFROM+%60interactions%60%0AORDER+BY+%60interaction_id%60+ASC%0ALIMIT+1000%3B%0A",
+                idPrefix: "interactions",
+                loaded: false
+            },
+            {
+                name: "Users",
+                url: "https://www.dolthub.com/api/v1alpha1/calvinw/engagement/main?q=SELECT+*%0AFROM+%60users%60%0AORDER+BY+%60user_id%60+ASC%0ALIMIT+1000%3B%0A",
+                idPrefix: "users",
+                loaded: false
+            }
+            // Add more table objects here if needed
+        ];
+
+        // --- DOM References ---
+        const tabNavigation = document.getElementById('tab-navigation');
+        const tabContentArea = document.getElementById('tab-content-area');
+        const generalErrorMessageDiv = document.getElementById('general-error-message');
+
+        // --- Function to Fetch Data and Populate a Specific Table ---
+        async function fetchDataAndPopulateTable(config) {
+            // Get references to the specific table elements for this tab
+            const tableHeaders = document.getElementById(`${config.idPrefix}-table-headers`);
+            const tableBody = document.getElementById(`${config.idPrefix}-table-body`);
+            const loadingIndicator = document.getElementById(`${config.idPrefix}-loading`);
+            const tabErrorDiv = document.getElementById(`${config.idPrefix}-error`); // Error specific to this tab
+
+            if (!tableHeaders || !tableBody || !loadingIndicator || !tabErrorDiv) {
+                console.error(`Table elements not found for prefix: ${config.idPrefix}`);
+                generalErrorMessageDiv.textContent = `Error: Could not find table elements for ${config.name}.`;
+                return;
+            }
+
+            // Show loading indicator, clear previous errors/content
+            loadingIndicator.style.display = 'table-row';
+            tabErrorDiv.textContent = '';
+            tableBody.innerHTML = ''; // Clear previous body content if any
+            tableHeaders.innerHTML = ''; // Clear previous headers
+
+            try {
+                // Fetch data from the API
+                const response = await fetch(config.url);
+
+                // Check if the response is successful
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+
+                // Parse the JSON response
+                const data = await response.json();
+
+                // Check if the data has the expected 'rows' property and it's an array
+                if (!data || !Array.isArray(data.rows)) {
+                     throw new Error('Invalid data format received from API.');
+                }
+
+                 // Hide loading indicator
+                loadingIndicator.style.display = 'none';
+
+                if (data.rows.length === 0) {
+                    tableBody.innerHTML = `<tr><td colspan="100%" class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 text-center">No data found for ${config.name}.</td></tr>`;
+                    console.warn(`No rows found for ${config.name}:`, data);
+                     // Still generate headers even if no rows
+                     if (data.schema && Array.isArray(data.schema)) {
+                        data.schema.forEach(col => {
+                             const th = document.createElement('th');
+                             th.scope = 'col';
+                             th.className = 'px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider';
+                             th.textContent = col.columnName || 'N/A';
+                             tableHeaders.appendChild(th);
+                        });
+                     } else if (data.rows.length > 0 && typeof data.rows[0] === 'object') {
+                         // Fallback: try getting headers from first row if schema missing
+                         Object.keys(data.rows[0]).forEach(header => {
+                            const th = document.createElement('th');
+                            th.scope = 'col';
+                            th.className = 'px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider';
+                            th.textContent = header;
+                            tableHeaders.appendChild(th);
+                         });
+                     }
+                    return;
+                }
+
+
+                const rows = data.rows;
+
+                // --- Generate Table Headers ---
+                // Prefer schema if available, otherwise use keys from the first row
+                let headers = [];
+                 if (data.schema && Array.isArray(data.schema)) {
+                     headers = data.schema.map(col => col.columnName);
+                 } else {
+                     headers = Object.keys(rows[0]);
+                 }
+
+                tableHeaders.innerHTML = ''; // Clear any existing headers
+                headers.forEach(header => {
+                    const th = document.createElement('th');
+                    th.scope = 'col';
+                    th.className = 'px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider';
+                    th.textContent = header;
+                    tableHeaders.appendChild(th);
+                });
+
+                // --- Populate Table Body ---
+                tableBody.innerHTML = ''; // Clear loading message or previous data
+                rows.forEach((row, index) => {
+                    const tr = document.createElement('tr');
+                    // Apply alternating row colors
+                    tr.className = index % 2 === 0 ? 'bg-white' : 'bg-gray-50';
+
+                    // Create a cell for each value in the row based on headers
+                    headers.forEach(header => {
+                        const td = document.createElement('td');
+                        td.className = 'px-6 py-4 whitespace-nowrap text-sm text-gray-700';
+                        // Handle potential null or undefined values
+                        td.textContent = row[header] !== null && row[header] !== undefined ? row[header] : 'N/A';
+                        tr.appendChild(td);
+                    });
+                    tableBody.appendChild(tr);
+                });
+
+                // Mark data as loaded for this tab
+                config.loaded = true;
+
+            } catch (error) {
+                // Log the error to the console
+                console.error(`Error fetching or processing data for ${config.name}:`, error);
+                // Display an error message within the specific tab
+                tabErrorDiv.textContent = `Failed to load data: ${error.message}.`;
+                // Ensure loading indicator is hidden on error
+                loadingIndicator.style.display = 'none';
+                // Optionally display a generic error message too
+                generalErrorMessageDiv.textContent = `An error occurred while loading data for ${config.name}.`;
+            }
+        }
+
+        // --- Function to Switch Tabs ---
+        function switchTab(targetIdPrefix) {
+            // Update tab buttons appearance
+            document.querySelectorAll('.tab-button').forEach(button => {
+                button.classList.toggle('active', button.dataset.target === targetIdPrefix);
+            });
+
+            // Update tab content visibility
+            document.querySelectorAll('.tab-content').forEach(content => {
+                content.classList.toggle('active', content.id === `${targetIdPrefix}-content`);
+            });
+
+            // Find the config for the selected tab
+            const selectedConfig = tableConfigs.find(c => c.idPrefix === targetIdPrefix);
+
+            // Fetch data if it hasn't been loaded yet for this tab
+            if (selectedConfig && !selectedConfig.loaded) {
+                fetchDataAndPopulateTable(selectedConfig);
+            }
+             // Clear general error message when switching tabs
+             generalErrorMessageDiv.textContent = '';
+        }
+
+        // --- Initialize Tabs and Content Areas ---
+        function initializeTabs() {
+            const nav = tabNavigation.querySelector('nav');
+            nav.innerHTML = ''; // Clear existing nav
+            tabContentArea.innerHTML = ''; // Clear existing content
+
+            tableConfigs.forEach((config, index) => {
+                // Create Tab Button
+                const button = document.createElement('button');
+                button.className = 'tab-button whitespace-nowrap py-3 px-4 border-b-2 font-medium text-sm text-gray-500 hover:text-gray-700 hover:border-gray-300 focus:outline-none';
+                button.textContent = config.name;
+                button.dataset.target = config.idPrefix; // Link button to content ID
+                button.onclick = () => switchTab(config.idPrefix);
+                nav.appendChild(button);
+
+                // Create Tab Content Area
+                const contentDiv = document.createElement('div');
+                contentDiv.id = `${config.idPrefix}-content`;
+                contentDiv.className = 'tab-content h-full'; // Add h-full
+                contentDiv.innerHTML = `
+                    <div class="table-wrapper">
+                        <table class="divide-y divide-gray-200">
+                            <thead class="bg-gray-50">
+                                <tr id="${config.idPrefix}-table-headers"></tr>
+                            </thead>
+                            <tbody id="${config.idPrefix}-table-body" class="bg-white divide-y divide-gray-200">
+                                <tr id="${config.idPrefix}-loading">
+                                    <td colspan="100%" class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 text-center">Loading ${config.name} data...</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                     <div id="${config.idPrefix}-error" class="mt-2 text-red-500 text-sm flex-shrink-0"></div>
+                `;
+                tabContentArea.appendChild(contentDiv);
+
+                // Activate the first tab by default
+                if (index === 0) {
+                    button.classList.add('active');
+                    contentDiv.classList.add('active');
+                    // Fetch data for the first tab immediately
+                    fetchDataAndPopulateTable(config);
+                }
+            });
+        }
+
+        // --- Initial Setup on DOM Load ---
+        document.addEventListener('DOMContentLoaded', initializeTabs);
+
+    </script>
+
+</body>
+</html>
+
