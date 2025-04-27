@@ -26,10 +26,8 @@ async def set_starters():
     return [
         cl.Starter(label="List Tables", 
                    message="Can you list the tables in the database?"),
-        cl.Starter(label="Show Amazon Financials", 
-                   message="Show all rows of the financials table for company Amazon. Do the same for the new_financial_metrics"),
         cl.Starter(label="Show Schemas", 
-                   message="Can you show the schemas of financials and new_financial_metrics"),
+                   message="Can you show the schemas of all tables")
     ]
 
 # Convert MCP tool schema to OpenAI tool schema
