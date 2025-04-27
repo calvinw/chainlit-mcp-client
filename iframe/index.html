@@ -65,58 +65,55 @@
 
     <div id="main-container" class="bg-white p-6 rounded-lg shadow-lg w-full">
 
+        <!-- Input for Database Reference -->
+        <div class="mb-4 flex space-x-2">
+            <input type="text" id="db-ref-input" placeholder="Enter user/database/branch (e.g., calvinw/engagement/main)" class="flex-grow px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
+            <button id="load-db-button" class="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">Load Database</button>
+        </div>
+         <div id="loading-tables-message" class="mb-4 text-gray-500 text-sm" style="display: none;">Loading tables...</div>
+
+        <!-- Tab Navigation -->
         <div id="tab-navigation" class="mb-4 border-b border-gray-200 flex-shrink-0">
-            <nav class="-mb-px flex space-x-4" aria-label="Tabs">
-                </nav>
+            <nav class="-mb-px flex space-x-4 overflow-x-auto" aria-label="Tabs">
+                <!-- Tabs will be generated here -->
+            </nav>
         </div>
 
+        <!-- Tab Content Area -->
         <div id="tab-content-area" class="flex-grow overflow-hidden">
-            </div>
+            <!-- Tab content will be generated here -->
+        </div>
 
+        <!-- General Error Message Area -->
         <div id="general-error-message" class="mt-4 text-red-600 text-center flex-shrink-0"></div>
 
     </div>
 
     <script>
-        // --- Configuration for Tables ---
-        const tableConfigs = [
-            {
-                name: "Channels", // Tab name
-                url: "https://www.dolthub.com/api/v1alpha1/calvinw/engagement/main?q=SELECT+*%0AFROM+%60channels%60%0AORDER+BY+%60channel_id%60+ASC%0ALIMIT+1000%3B%0A",
-                idPrefix: "channels", // Unique prefix for element IDs
-                loaded: false // Flag to track if data is loaded
-            },
-            {
-                name: "Interactions",
-                url: "https://www.dolthub.com/api/v1alpha1/calvinw/engagement/main?q=SELECT+*%0AFROM+%60interactions%60%0AORDER+BY+%60interaction_id%60+ASC%0ALIMIT+1000%3B%0A",
-                idPrefix: "interactions",
-                loaded: false
-            },
-            {
-                name: "Users",
-                url: "https://www.dolthub.com/api/v1alpha1/calvinw/engagement/main?q=SELECT+*%0AFROM+%60users%60%0AORDER+BY+%60user_id%60+ASC%0ALIMIT+1000%3B%0A",
-                idPrefix: "users",
-                loaded: false
-            }
-            // Add more table objects here if needed
-        ];
+        // --- Global State ---
+        let currentDbRef = null; // Stores the current 'user/database/branch'
+        let tableLoadStatus = {}; // Tracks loaded status for each table { tableName: boolean }
 
         // --- DOM References ---
+        const dbRefInput = document.getElementById('db-ref-input');
+        const loadDbButton = document.getElementById('load-db-button');
+        const loadingTablesMessage = document.getElementById('loading-tables-message');
         const tabNavigation = document.getElementById('tab-navigation');
         const tabContentArea = document.getElementById('tab-content-area');
         const generalErrorMessageDiv = document.getElementById('general-error-message');
 
         // --- Function to Fetch Data and Populate a Specific Table ---
-        async function fetchDataAndPopulateTable(config) {
+        async function fetchDataAndPopulateTable(dbRef, tableName) {
+            const idPrefix = tableName.replace(/[^a-zA-Z0-9]/g, '_'); // Create a safe ID prefix
             // Get references to the specific table elements for this tab
-            const tableHeaders = document.getElementById(`${config.idPrefix}-table-headers`);
-            const tableBody = document.getElementById(`${config.idPrefix}-table-body`);
-            const loadingIndicator = document.getElementById(`${config.idPrefix}-loading`);
-            const tabErrorDiv = document.getElementById(`${config.idPrefix}-error`); // Error specific to this tab
+            const tableHeaders = document.getElementById(`${idPrefix}-table-headers`);
+            const tableBody = document.getElementById(`${idPrefix}-table-body`);
+            const loadingIndicator = document.getElementById(`${idPrefix}-loading`);
+            const tabErrorDiv = document.getElementById(`${idPrefix}-error`); // Error specific to this tab
 
             if (!tableHeaders || !tableBody || !loadingIndicator || !tabErrorDiv) {
-                console.error(`Table elements not found for prefix: ${config.idPrefix}`);
-                generalErrorMessageDiv.textContent = `Error: Could not find table elements for ${config.name}.`;
+                console.error(`Table elements not found for prefix: ${idPrefix} (table: ${tableName})`);
+                generalErrorMessageDiv.textContent = `Error: Could not find table elements for ${tableName}.`;
                 return;
             }
 
@@ -126,9 +123,13 @@
             tableBody.innerHTML = ''; // Clear previous body content if any
             tableHeaders.innerHTML = ''; // Clear previous headers
 
+            // Construct the API URL
+            const encodedQuery = encodeURIComponent(`SELECT * FROM \`${tableName}\` LIMIT 20`);
+            const apiUrl = `https://www.dolthub.com/api/v1alpha1/${dbRef}?q=${encodedQuery}`;
+
             try {
                 // Fetch data from the API
-                const response = await fetch(config.url);
+                const response = await fetch(apiUrl);
 
                 // Check if the response is successful
                 if (!response.ok) {
@@ -140,93 +141,84 @@
 
                 // Check if the data has the expected 'rows' property and it's an array
                 if (!data || !Array.isArray(data.rows)) {
-                     throw new Error('Invalid data format received from API.');
+                    throw new Error('Invalid data format received from API.');
                 }
 
-                 // Hide loading indicator
+                // Hide loading indicator
                 loadingIndicator.style.display = 'none';
 
-                if (data.rows.length === 0) {
-                    tableBody.innerHTML = `<tr><td colspan="100%" class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 text-center">No data found for ${config.name}.</td></tr>`;
-                    console.warn(`No rows found for ${config.name}:`, data);
-                     // Still generate headers even if no rows
-                     if (data.schema && Array.isArray(data.schema)) {
-                        data.schema.forEach(col => {
-                             const th = document.createElement('th');
-                             th.scope = 'col';
-                             th.className = 'px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider';
-                             th.textContent = col.columnName || 'N/A';
-                             tableHeaders.appendChild(th);
-                        });
-                     } else if (data.rows.length > 0 && typeof data.rows[0] === 'object') {
-                         // Fallback: try getting headers from first row if schema missing
-                         Object.keys(data.rows[0]).forEach(header => {
-                            const th = document.createElement('th');
-                            th.scope = 'col';
-                            th.className = 'px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider';
-                            th.textContent = header;
-                            tableHeaders.appendChild(th);
-                         });
-                     }
-                    return;
-                }
-
-
                 const rows = data.rows;
+                let headers = [];
 
                 // --- Generate Table Headers ---
-                // Prefer schema if available, otherwise use keys from the first row
-                let headers = [];
-                 if (data.schema && Array.isArray(data.schema)) {
-                     headers = data.schema.map(col => col.columnName);
-                 } else {
-                     headers = Object.keys(rows[0]);
-                 }
+                if (data.schema && Array.isArray(data.schema)) {
+                    headers = data.schema.map(col => col.columnName || 'N/A');
+                } else if (rows.length > 0 && typeof rows[0] === 'object') {
+                    // Fallback: try getting headers from first row if schema missing
+                    headers = Object.keys(rows[0]);
+                }
 
                 tableHeaders.innerHTML = ''; // Clear any existing headers
-                headers.forEach(header => {
-                    const th = document.createElement('th');
-                    th.scope = 'col';
-                    th.className = 'px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider';
-                    th.textContent = header;
-                    tableHeaders.appendChild(th);
-                });
+                if (headers.length > 0) {
+                    headers.forEach(header => {
+                        const th = document.createElement('th');
+                        th.scope = 'col';
+                        th.className = 'px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider';
+                        th.textContent = header;
+                        tableHeaders.appendChild(th);
+                    });
+                } else if (rows.length === 0) {
+                    // If no headers and no rows, add a single header cell indicating no columns
+                     const th = document.createElement('th');
+                     th.scope = 'col';
+                     th.className = 'px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider';
+                     th.textContent = 'Table Schema';
+                     tableHeaders.appendChild(th);
+                }
+
 
                 // --- Populate Table Body ---
                 tableBody.innerHTML = ''; // Clear loading message or previous data
-                rows.forEach((row, index) => {
-                    const tr = document.createElement('tr');
-                    // Apply alternating row colors
-                    tr.className = index % 2 === 0 ? 'bg-white' : 'bg-gray-50';
+                if (rows.length === 0) {
+                    const colspan = Math.max(1, headers.length); // Colspan should be at least 1
+                    tableBody.innerHTML = `<tr><td colspan="${colspan}" class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 text-center">No data found for ${tableName}.</td></tr>`;
+                    console.warn(`No rows found for ${tableName}:`, data);
+                } else {
+                    rows.forEach((row, index) => {
+                        const tr = document.createElement('tr');
+                        // Apply alternating row colors
+                        tr.className = index % 2 === 0 ? 'bg-white' : 'bg-gray-50';
 
-                    // Create a cell for each value in the row based on headers
-                    headers.forEach(header => {
-                        const td = document.createElement('td');
-                        td.className = 'px-6 py-4 whitespace-nowrap text-sm text-gray-700';
-                        // Handle potential null or undefined values
-                        td.textContent = row[header] !== null && row[header] !== undefined ? row[header] : 'N/A';
-                        tr.appendChild(td);
+                        // Create a cell for each value in the row based on headers
+                        headers.forEach(header => {
+                            const td = document.createElement('td');
+                            td.className = 'px-6 py-4 whitespace-nowrap text-sm text-gray-700';
+                            // Handle potential null or undefined values
+                            td.textContent = row[header] !== null && row[header] !== undefined ? row[header] : 'N/A';
+                            tr.appendChild(td);
+                        });
+                        tableBody.appendChild(tr);
                     });
-                    tableBody.appendChild(tr);
-                });
+                }
 
                 // Mark data as loaded for this tab
-                config.loaded = true;
+                tableLoadStatus[tableName] = true;
 
             } catch (error) {
                 // Log the error to the console
-                console.error(`Error fetching or processing data for ${config.name}:`, error);
+                console.error(`Error fetching or processing data for ${tableName}:`, error);
                 // Display an error message within the specific tab
-                tabErrorDiv.textContent = `Failed to load data: ${error.message}.`;
+                tabErrorDiv.textContent = `Failed to load data: ${error.message}. Check console for details.`;
                 // Ensure loading indicator is hidden on error
                 loadingIndicator.style.display = 'none';
                 // Optionally display a generic error message too
-                generalErrorMessageDiv.textContent = `An error occurred while loading data for ${config.name}.`;
+                generalErrorMessageDiv.textContent = `An error occurred while loading data for ${tableName}.`;
             }
         }
 
         // --- Function to Switch Tabs ---
-        function switchTab(targetIdPrefix) {
+        function switchTab(tableName) {
+            const targetIdPrefix = tableName.replace(/[^a-zA-Z0-9]/g, '_');
             // Update tab buttons appearance
             document.querySelectorAll('.tab-button').forEach(button => {
                 button.classList.toggle('active', button.dataset.target === targetIdPrefix);
@@ -237,50 +229,61 @@
                 content.classList.toggle('active', content.id === `${targetIdPrefix}-content`);
             });
 
-            // Find the config for the selected tab
-            const selectedConfig = tableConfigs.find(c => c.idPrefix === targetIdPrefix);
-
             // Fetch data if it hasn't been loaded yet for this tab
-            if (selectedConfig && !selectedConfig.loaded) {
-                fetchDataAndPopulateTable(selectedConfig);
+            if (currentDbRef && !tableLoadStatus[tableName]) {
+                 console.log(`Fetching data for ${tableName} in ${currentDbRef}`);
+                 fetchDataAndPopulateTable(currentDbRef, tableName);
+            } else {
+                 console.log(`Data for ${tableName} already loaded or dbRef not set.`);
             }
+
              // Clear general error message when switching tabs
              generalErrorMessageDiv.textContent = '';
         }
 
-        // --- Initialize Tabs and Content Areas ---
-        function initializeTabs() {
+        // --- Function to Initialize Tabs and Content Areas ---
+        function initializeTabsAndContent(tableNames) {
             const nav = tabNavigation.querySelector('nav');
             nav.innerHTML = ''; // Clear existing nav
             tabContentArea.innerHTML = ''; // Clear existing content
+            tableLoadStatus = {}; // Reset load status
 
-            tableConfigs.forEach((config, index) => {
+            if (!tableNames || tableNames.length === 0) {
+                nav.innerHTML = '<span class="text-gray-500">No tables found or error loading tables.</span>';
+                return;
+            }
+
+            tableNames.forEach((tableName, index) => {
+                const idPrefix = tableName.replace(/[^a-zA-Z0-9]/g, '_');
+                tableLoadStatus[tableName] = false; // Mark as not loaded initially
+
                 // Create Tab Button
                 const button = document.createElement('button');
                 button.className = 'tab-button whitespace-nowrap py-3 px-4 border-b-2 font-medium text-sm text-gray-500 hover:text-gray-700 hover:border-gray-300 focus:outline-none';
-                button.textContent = config.name;
-                button.dataset.target = config.idPrefix; // Link button to content ID
-                button.onclick = () => switchTab(config.idPrefix);
+                button.textContent = tableName;
+                button.dataset.target = idPrefix; // Link button to content ID
+                button.dataset.tablename = tableName; // Store table name
+                button.onclick = () => switchTab(tableName);
                 nav.appendChild(button);
 
                 // Create Tab Content Area
                 const contentDiv = document.createElement('div');
-                contentDiv.id = `${config.idPrefix}-content`;
+                contentDiv.id = `${idPrefix}-content`;
                 contentDiv.className = 'tab-content h-full'; // Add h-full
                 contentDiv.innerHTML = `
                     <div class="table-wrapper">
                         <table class="divide-y divide-gray-200">
                             <thead class="bg-gray-50">
-                                <tr id="${config.idPrefix}-table-headers"></tr>
+                                <tr id="${idPrefix}-table-headers"></tr>
                             </thead>
-                            <tbody id="${config.idPrefix}-table-body" class="bg-white divide-y divide-gray-200">
-                                <tr id="${config.idPrefix}-loading">
-                                    <td colspan="100%" class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 text-center">Loading ${config.name} data...</td>
+                            <tbody id="${idPrefix}-table-body" class="bg-white divide-y divide-gray-200">
+                                <tr id="${idPrefix}-loading" style="display: none;"> <!-- Initially hidden -->
+                                    <td colspan="100%" class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 text-center">Loading ${tableName} data...</td>
                                 </tr>
                             </tbody>
                         </table>
                     </div>
-                     <div id="${config.idPrefix}-error" class="mt-2 text-red-500 text-sm flex-shrink-0"></div>
+                     <div id="${idPrefix}-error" class="mt-2 text-red-500 text-sm flex-shrink-0"></div>
                 `;
                 tabContentArea.appendChild(contentDiv);
 
@@ -288,17 +291,100 @@
                 if (index === 0) {
                     button.classList.add('active');
                     contentDiv.classList.add('active');
-                    // Fetch data for the first tab immediately
-                    fetchDataAndPopulateTable(config);
+                    // Fetch data for the first tab immediately after setting up tabs
+                    fetchDataAndPopulateTable(currentDbRef, tableName);
                 }
             });
         }
 
-        // --- Initial Setup on DOM Load ---
-        document.addEventListener('DOMContentLoaded', initializeTabs);
+        // --- Function to Load Database Tables ---
+        async function loadDatabase() {
+            const dbRef = dbRefInput.value.trim();
+            if (!dbRef || !dbRef.includes('/')) {
+                generalErrorMessageDiv.textContent = 'Please enter a valid database reference (e.g., user/database/branch).';
+                return;
+            }
+
+            currentDbRef = dbRef; // Store the current reference
+            generalErrorMessageDiv.textContent = ''; // Clear previous errors
+            loadingTablesMessage.style.display = 'block'; // Show loading message
+            tabNavigation.querySelector('nav').innerHTML = ''; // Clear old tabs
+            tabContentArea.innerHTML = ''; // Clear old content
+
+            // --- Use SHOW TABLES Query ---
+            const encodedQuery = encodeURIComponent('SHOW TABLES;');
+            // --- End Use SHOW TABLES Query ---
+
+            const apiUrl = `https://www.dolthub.com/api/v1alpha1/${dbRef}?q=${encodedQuery}`;
+            console.log(`Fetching tables using SHOW TABLES from: ${apiUrl}`); // Log the URL
+
+            try {
+                generalErrorMessageDiv.textContent = ''; // Clear previous errors before fetch
+                const response = await fetch(apiUrl);
+
+                if (!response.ok) {
+                    let errorText = `HTTP error! status: ${response.status}`;
+                    try {
+                        // Try to get more specific error text from the response body
+                        const bodyText = await response.text();
+                        errorText += ` - ${bodyText}`;
+                    } catch (textError) {
+                        console.warn("Could not read error response body:", textError);
+                    }
+                    // Log the detailed error before throwing
+                    console.error("API request failed:", errorText);
+                    throw new Error(errorText); // Throw the detailed error
+                }
+
+                const data = await response.json();
+                console.log("API response data:", data); // Log the received data
+
+                if (!data || !Array.isArray(data.rows)) {
+                     console.error("Invalid data format received:", data);
+                    throw new Error('Invalid response format when fetching tables.');
+                }
+
+                 // Dynamically get the column name for tables from the schema
+                 if (!data.schema || data.schema.length === 0 || !data.schema[0].columnName) {
+                     console.error("Invalid schema format received for SHOW TABLES:", data.schema);
+                     throw new Error("Could not determine table name column from schema.");
+                 }
+                 const tableNameColumn = data.schema[0].columnName;
+                 console.log(`Using column name '${tableNameColumn}' for table names.`);
+
+                const tableNames = data.rows.map(row => row[tableNameColumn]).filter(name => name && !name.startsWith('dolt_')); // Filter out null/empty and dolt_ tables just in case
+                console.log("Found tables:", tableNames); // Log the extracted table names
+
+                if (tableNames.length === 0) {
+                     console.warn("No tables found in the database reference:", dbRef);
+                     tabNavigation.querySelector('nav').innerHTML = '<span class="text-gray-500">No tables found in this database/branch.</span>';
+                     tabContentArea.innerHTML = ''; // Clear content area
+                } else {
+                    initializeTabsAndContent(tableNames);
+                }
+
+            } catch (error) {
+                // Ensure error object is logged properly
+                console.error('Caught error during table loading:', error);
+                // Display a more informative error message
+                generalErrorMessageDiv.textContent = `Failed to load tables. ${error.message || 'An unknown error occurred.'}`;
+                tabNavigation.querySelector('nav').innerHTML = '<span class="text-red-500">Error loading tables. Check console for details.</span>';
+            } finally {
+                 loadingTablesMessage.style.display = 'none'; // Hide loading message
+            }
+        }
+
+        // --- Initial Setup ---
+        loadDbButton.addEventListener('click', loadDatabase);
+        // Add listener for Enter key in the input field
+        dbRefInput.addEventListener('keypress', function(event) {
+            if (event.key === 'Enter') {
+                event.preventDefault(); // Prevent default form submission if it were in a form
+                loadDatabase();
+            }
+        });
 
     </script>
 
 </body>
 </html>
-
