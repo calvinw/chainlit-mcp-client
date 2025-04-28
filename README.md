@@ -16,8 +16,10 @@ DoltMcpServer
 ```
 ### Command
 ```bash
-uvx bus-mgmt-dolt-mcp-server --database coffee-shop 
+uvx bus-mgmt-dolt-mcp-server --db calvinw/coffee-shop/main
 ```
+
+The parts to the --db are the user/database/branch where the user is the name of the owner of the databse, not the user of the MCP server. Then the database is the name of the database and the last part is the branch.
 
 Here are the tables since they are so small
 
@@ -84,8 +86,9 @@ DoltMcpServer
 ```
 ### Command
 ```bash
-uvx bus-mgmt-dolt-mcp-server --database BusMgmtBenchmarks 
+uvx bus-mgmt-dolt-mcp-server --db calvinw/BusMgmtBenchmarks/main 
 ```
+
 
 You can see the structure of the database [here](https://www.dolthub.com/repositories/calvinw/BusMgmtBenchmarks/schema/main)
 
