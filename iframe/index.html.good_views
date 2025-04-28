@@ -75,15 +75,8 @@
                  <label for="limit-input" class="block text-sm font-medium text-gray-700 mb-1">Row Limit</label>
                  <input type="number" id="limit-input" value="20" min="1" class="w-full md:w-24 px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
             </div>
-            <div class="flex-shrink-0 w-full md:w-auto">
-                 <label for="type-select" class="block text-sm font-medium text-gray-700 mb-1">Type</label>
-                 <select id="type-select" class="w-full md:w-auto px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
-                     <option value="tables" selected>Tables</option>
-                     <option value="views">Views</option>
-                 </select>
-            </div>
              <div class="flex-shrink-0 w-full md:w-auto">
-                 <!-- Add a placeholder label for alignment -->
+                 <!-- Add a placeholder label for alignment or adjust button margin -->
                  <label class="block text-sm font-medium text-transparent mb-1 invisible md:visible">.</label> <!-- Placeholder for alignment -->
                  <button id="load-db-button" class="w-full md:w-auto px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">Load Database</button>
             </div>
@@ -120,7 +113,6 @@
         const tabContentArea = document.getElementById('tab-content-area');
         const generalErrorMessageDiv = document.getElementById('general-error-message');
         const limitInput = document.getElementById('limit-input');
-        const typeSelect = document.getElementById('type-select');
 
         // --- Function to Fetch Data and Populate a Specific Table ---
         async function fetchDataAndPopulateTable(dbRef, tableName) {
@@ -332,23 +324,12 @@
             tabNavigation.querySelector('nav').innerHTML = ''; // Clear old tabs
             tabContentArea.innerHTML = ''; // Clear old content
 
-            // --- Construct Query based on Type ---
-            const selectedType = typeSelect.value;
-            let listQuery = '';
-            if (selectedType === 'views') {
-                // Correct query to list only views
-                listQuery = "SHOW FULL TABLES WHERE Table_type = 'VIEW';";
-                console.log("Querying for views.");
-            } else { // Default to tables
-                // Query to list only base tables (excluding views)
-                listQuery = "SHOW FULL TABLES WHERE Table_type = 'BASE TABLE';";
-                 console.log("Querying for tables.");
-            }
-            const encodedQuery = encodeURIComponent(listQuery);
-            // --- End Construct Query ---
+            // --- Use SHOW TABLES Query ---
+            const encodedQuery = encodeURIComponent('SHOW TABLES;');
+            // --- End Use SHOW TABLES Query ---
 
             const apiUrl = `https://www.dolthub.com/api/v1alpha1/${dbRef}?q=${encodedQuery}`;
-            console.log(`Fetching ${selectedType} from: ${apiUrl}`); // Log the URL
+            console.log(`Fetching tables using SHOW TABLES from: ${apiUrl}`); // Log the URL
 
             try {
                 generalErrorMessageDiv.textContent = ''; // Clear previous errors before fetch
@@ -373,37 +354,34 @@
 
                 if (!data || !Array.isArray(data.rows)) {
                      console.error("Invalid data format received:", data);
-                    throw new Error(`Invalid response format when fetching ${selectedType}.`);
+                    throw new Error('Invalid response format when fetching tables.');
                 }
 
-                 // Dynamically get the column name for tables/views from the schema
-                 // SHOW TABLES uses 'Tables_in_database' (or similar based on db name)
-                 // SHOW VIEWS uses 'Views_in_database' (or similar based on db name)
-                 // We expect only one column in the result for these commands.
+                 // Dynamically get the column name for tables from the schema
                  if (!data.schema || data.schema.length === 0 || !data.schema[0].columnName) {
-                      console.error(`Invalid schema format received for SHOW ${selectedType.toUpperCase()}:`, data.schema);
-                      throw new Error(`Could not determine ${selectedType} name column from schema.`);
+                     console.error("Invalid schema format received for SHOW TABLES:", data.schema);
+                     throw new Error("Could not determine table name column from schema.");
                  }
-                 const nameColumn = data.schema[0].columnName;
-                 console.log(`Using column name '${nameColumn}' for ${selectedType} names.`);
+                 const tableNameColumn = data.schema[0].columnName;
+                 console.log(`Using column name '${tableNameColumn}' for table names.`);
 
-                const names = data.rows.map(row => row[nameColumn]).filter(name => name && !name.startsWith('dolt_')); // Filter out null/empty and dolt_ internal items
-                console.log(`Found ${selectedType}:`, names); // Log the extracted names
+                const tableNames = data.rows.map(row => row[tableNameColumn]).filter(name => name && !name.startsWith('dolt_')); // Filter out null/empty and dolt_ tables just in case
+                console.log("Found tables:", tableNames); // Log the extracted table names
 
-                if (names.length === 0) {
-                     console.warn(`No ${selectedType} found in the database reference:`, dbRef);
-                     tabNavigation.querySelector('nav').innerHTML = `<span class="text-gray-500">No ${selectedType} found in this database/branch.</span>`;
+                if (tableNames.length === 0) {
+                     console.warn("No tables found in the database reference:", dbRef);
+                     tabNavigation.querySelector('nav').innerHTML = '<span class="text-gray-500">No tables found in this database/branch.</span>';
                      tabContentArea.innerHTML = ''; // Clear content area
                 } else {
-                    initializeTabsAndContent(names); // Pass the list of names (tables or views)
+                    initializeTabsAndContent(tableNames);
                 }
 
             } catch (error) {
                 // Ensure error object is logged properly
                 console.error('Caught error during table loading:', error);
                 // Display a more informative error message
-                generalErrorMessageDiv.textContent = `Failed to load ${selectedType}. ${error.message || 'An unknown error occurred.'}`;
-                tabNavigation.querySelector('nav').innerHTML = `<span class="text-red-500">Error loading ${selectedType}. Check console for details.</span>`;
+                generalErrorMessageDiv.textContent = `Failed to load tables. ${error.message || 'An unknown error occurred.'}`;
+                tabNavigation.querySelector('nav').innerHTML = '<span class="text-red-500">Error loading tables. Check console for details.</span>';
             } finally {
                  loadingTablesMessage.style.display = 'none'; // Hide loading message
             }
@@ -417,19 +395,6 @@
                 event.preventDefault(); // Prevent default form submission if it were in a form
                 loadDatabase();
             }
-        });
-        // Add listeners for automatic reload on change
-        limitInput.addEventListener('change', () => {
-            if (currentDbRef) { // Only reload if a DB is already loaded
-                console.log("Limit changed, reloading database...");
-                loadDatabase();
-            }
-        });
-        typeSelect.addEventListener('change', () => {
-             if (currentDbRef) { // Only reload if a DB is already loaded
-                console.log("Type changed, reloading database...");
-                loadDatabase();
-             }
         });
 
     </script>

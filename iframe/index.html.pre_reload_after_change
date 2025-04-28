@@ -418,19 +418,6 @@
                 loadDatabase();
             }
         });
-        // Add listeners for automatic reload on change
-        limitInput.addEventListener('change', () => {
-            if (currentDbRef) { // Only reload if a DB is already loaded
-                console.log("Limit changed, reloading database...");
-                loadDatabase();
-            }
-        });
-        typeSelect.addEventListener('change', () => {
-             if (currentDbRef) { // Only reload if a DB is already loaded
-                console.log("Type changed, reloading database...");
-                loadDatabase();
-             }
-        });
 
     </script>
 
