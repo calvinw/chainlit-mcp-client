@@ -16,7 +16,25 @@ logger = logging.getLogger(__name__)
 
 load_dotenv()
 
-SYSTEM = "You are a helpful assistant working on MySQL queries with a user. Make sure you put rows from queries into an markdown table for presentation. Lists of tables can be a markdown list. You can execute any read only query in read_query. Be sure and use backticks for column names since this is MySQL."
+SYSTEM = """You are a helpful assistant working on MySQL queries with the user. When you list rows from tables format them as a markdown table. When you list any views or SQL code put it in codeblocks."""
+
+
+import chainlit as cl
+
+@cl.action_callback("action_button")
+async def on_action(action):
+    await cl.Message(content=f"Executed {action.name}").send()
+    # Optionally remove the action button from the chatbot user interface
+    await action.remove()
+
+@cl.on_chat_start
+async def start():
+    # Sending an action button within a chatbot message
+    actions = [
+        cl.Action(name="action_button", payload={"value": "example_value"}, label="Click me!")
+    ]
+
+    await cl.Message(content="Interact with this action button:", actions=actions).send()
 
 def flatten(xss):
     return [x for xs in xss for x in xs]
@@ -24,18 +42,20 @@ def flatten(xss):
 @cl.set_starters
 async def set_starters():
     return [
+        cl.Starter(label="Show Database Name", 
+                   message="Show the database name"),
         cl.Starter(label="List Tools", 
-                   message="List available tools a nice markdown table format"),
+                   message="List available tools formatted in a markdown table"),
         cl.Starter(label="List Tables", 
-                   message="List the tables using list_tables"),
+                   message="List the tables using the tool list_tables"),
         cl.Starter(label="List Views", 
                    message="List the views using list_views"),
         cl.Starter(label="Show Schemas", 
                    message="Show the schemas of all tables using list_tables and then describe_table"),
         cl.Starter(label="List View Definitions", 
-                   message="List all view definitions using list_views and describe_view. Put them in a nice markdown table using code block formatting. Use multiple lines"),
+                   message="List all view definitions using list_views and describe_view. Put the descriptions in markdown code blocks."),
         cl.Starter(label="Show Rows in All Tables", 
-                   message="Show 5 rows in each table using list_tables and read_query"),
+                   message="Show 5 rows in each table by using list_tables and then read_query to display 5 rows in each table"),
         cl.Starter(label="Run Each View", 
                    message="Run each view using list_views and then read_query"),
     ]
@@ -271,12 +291,12 @@ async def start_chat():
                 id="Model",
                 label="OpenRouter Model",
                 values=[
-                    # "qwen/qwen3-235b-a22b",
                     "google/gemini-2.5-flash-preview",
                     "google/gemini-2.0-flash-001",
                     "google/gemini-2.0-flash-lite-001",
                     "google/gemini-flash-1.5",
                     "google/gemini-flash-1.5-8b",
+                    "qwen/qwen3-235b-a22b",
                     "anthropic/claude-3-haiku",
                     "openai/o4-mini",
                     "openai/o4",
