@@ -113,40 +113,55 @@ async def call_tool(tool_call):
     try:
         # Call the tool with validated input
         tool_output = await mcp_session.call_tool(tool_name, tool_input)
-        
-        # Special case for list_tables to extract just the table names
-        if tool_name == "list_tables" and tool_output is not None:
-            # Extract the content field which contains TextContent objects
-            if hasattr(tool_output, 'content') and tool_output.content:
-                # Find the TextContent object
-                for item in tool_output.content:
-                    if hasattr(item, 'text'):
-                        # This is what we want - just the table names text
-                        result_text = item.text
-                        break
-                else:
-                    # If we didn't find a TextContent with text attribute
-                    result_text = "No tables found"
+
+        # Extract the content field which contains TextContent objects
+        if hasattr(tool_output, 'content') and tool_output.content:
+            # Find the TextContent object
+            for item in tool_output.content:
+                if hasattr(item, 'text'):
+                    # This is what we want - just the table names text
+                    result_text = item.text
+                    break
             else:
-                # Fallback if content is not available
-                result_text = "Unable to retrieve tables"
-        
-        # For all other tools, use the standard extraction logic
+                # If we didn't find a TextContent with text attribute
+                result_text = "No tables found"
         else:
-            # Extract the text content from the CallToolResult object
-            if tool_output is not None:
-                # If it's an iterable (like a list), join the text of each item
-                if hasattr(tool_output, '__iter__') and not isinstance(tool_output, str):
-                    result_text = "\n".join([str(item.text) if hasattr(item, 'text') else str(item) for item in tool_output])
-                # If it has a text attribute directly
-                elif hasattr(tool_output, 'text'):
-                    result_text = tool_output.text
-                else:
-                    result_text = str(tool_output)
-            else:
-                result_text = "No output returned"
-            
-        current_step.output = result_text  # Log the extracted text
+            # Fallback if content is not available
+            result_text = "Unable to retrieve tables"
+        
+        # # Special case for list_tables to extract just the table names
+        # if tool_name == "list_tables" and tool_output is not None:
+        #     # Extract the content field which contains TextContent objects
+        #     if hasattr(tool_output, 'content') and tool_output.content:
+        #         # Find the TextContent object
+        #         for item in tool_output.content:
+        #             if hasattr(item, 'text'):
+        #                 # This is what we want - just the table names text
+        #                 result_text = item.text
+        #                 break
+        #         else:
+        #             # If we didn't find a TextContent with text attribute
+        #             result_text = "No tables found"
+        #     else:
+        #         # Fallback if content is not available
+        #         result_text = "Unable to retrieve tables"
+        #
+        # # For all other tools, use the standard extraction logic
+        # else:
+        #     # Extract the text content from the CallToolResult object
+        #     if tool_output is not None:
+        #         # If it's an iterable (like a list), join the text of each item
+        #         if hasattr(tool_output, '__iter__') and not isinstance(tool_output, str):
+        #             result_text = "\n".join([str(item.text) if hasattr(item, 'text') else str(item) for item in tool_output])
+        #         # If it has a text attribute directly
+        #         elif hasattr(tool_output, 'text'):
+        #             result_text = tool_output.text
+        #         else:
+        #             result_text = str(tool_output)
+        #     else:
+        #         result_text = "No output returned"
+        #     
+        # current_step.output = result_text  # Log the extracted text
         
     except Exception as e:
         # Handle and log any exceptions during tool execution
@@ -246,6 +261,7 @@ async def start_chat():
                 id="Model",
                 label="OpenRouter Model",
                 values=[
+                    # "qwen/qwen3-235b-a22b",
                     "google/gemini-2.5-flash-preview",
                     "google/gemini-2.0-flash-001",
                     "google/gemini-2.0-flash-lite-001",

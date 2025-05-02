@@ -89,6 +89,5 @@ DoltMcpServer
 uvx bus-mgmt-dolt-mcp-server --db calvinw/BusMgmtBenchmarks/main 
 ```
 
-
 You can see the structure of the database [here](https://www.dolthub.com/repositories/calvinw/BusMgmtBenchmarks/schema/main)
 
