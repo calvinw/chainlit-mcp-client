@@ -24,10 +24,20 @@ def flatten(xss):
 @cl.set_starters
 async def set_starters():
     return [
+        cl.Starter(label="List Tools", 
+                   message="List available tools a nice markdown table format"),
         cl.Starter(label="List Tables", 
-                   message="Can you list the tables in the database?"),
+                   message="List the tables using list_tables"),
+        cl.Starter(label="List Views", 
+                   message="List the views using list_views"),
         cl.Starter(label="Show Schemas", 
-                   message="Can you show the schemas of all tables")
+                   message="Show the schemas of all tables using list_tables and then describe_table"),
+        cl.Starter(label="List View Definitions", 
+                   message="List all view definitions using list_views and describe_view. Put them in a nice markdown table using code block formatting. Use multiple lines"),
+        cl.Starter(label="Show Rows in All Tables", 
+                   message="Show 5 rows in each table using list_tables and read_query"),
+        cl.Starter(label="Run Each View", 
+                   message="Run each view using list_views and then read_query"),
     ]
 
 # Convert MCP tool schema to OpenAI tool schema
