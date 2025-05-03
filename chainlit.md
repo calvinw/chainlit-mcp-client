@@ -21,6 +21,25 @@ uvx bus-mgmt-dolt-mcp-server --db calvinw/coffee-shop/main
 
 The parts to the --db are the user/database/branch where the user is the name of the owner of the databse, not the user of the MCP server. Then the database is the name of the database and the last part is the branch.
 
+Here are the available tools
+
+| Tool Name                 | Description                                                                                                                                |
+|---------------------------|--------------------------------------------------------------------------------------------------------------------------------------------|
+| `export_views_statements` | Export DROP VIEW and CREATE VIEW statements for all views. First outputs all DROP VIEW IF EXISTS statements, then outputs the CREATE VIEW statements. |
+| `read_query`              | Execute SQL read queries safely on the Dolt database                                                                                       |
+| `write_query`             | Execute write operations (INSERT, UPDATE, DELETE, CREATE, DROP, ALTER, RENAME) on the Dolt database. Handles polling for asynchronous operations. |
+| `list_tables`             | List the BASE tables in the database (excluding views)                                                                                     |
+| `describe_table`          | Describe the structure of a specific table. Handles table names that require quoting (e.g., containing spaces) automatically.                |
+| `download_table_csv`      | Downloads the content of a specific table as CSV text using the DoltHub API. Handles table names that require quoting automatically.         |
+| `list_views`              | List the views in the database                                                                                                             |
+| `describe_view`           | Show the CREATE VIEW statement for a specific view. Handles view names that require quoting (e.g., containing spaces) automatically.         |
+| `create_view`             | Create a new view in the database using the provided SELECT query. Handles view names that require quoting (e.g., containing spaces) automatically. Uses the write_query tool for execution. |
+| `drop_view`               | Drop a view from the database. Handles view names that require quoting (e.g., containing spaces) automatically. Uses the write_query tool for execution. |
+| `drop_all_views`          | Drop all views from the database by listing all views and invoking drop_view for each. If a drop fails due to a timeout, the function will retry the drop once. |
+| `greet`                   |                                                                                                                                            |
+| `get_current_database`    | Return the currently configured database connection string in user/database/branch format.                                                 |
+| `set_current_database`    | Set the active database connection string. Expects format: user/database/branch.                                                           |
+
 Here are the tables since they are so small
 
 ### Products Table
