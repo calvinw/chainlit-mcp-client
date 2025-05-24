@@ -42,22 +42,22 @@ def flatten(xss):
 @cl.set_starters
 async def set_starters():
     return [
-        cl.Starter(label="Show Database Name", 
-                   message="Show the database name"),
-        cl.Starter(label="List Tools", 
-                   message="List available tools formatted in a markdown table"),
-        cl.Starter(label="List Tables", 
-                   message="List the tables using the tool list_tables"),
-        cl.Starter(label="List Views", 
-                   message="List the views using list_views"),
-        cl.Starter(label="Show Schemas", 
-                   message="Show the schemas of all tables using list_tables and then describe_table"),
-        cl.Starter(label="List View Definitions", 
-                   message="List all view definitions using list_views and describe_view. Put the descriptions in markdown code blocks."),
-        cl.Starter(label="Show Rows in All Tables", 
-                   message="Show 5 rows in each table by using list_tables and then read_query to display 5 rows in each table"),
-        cl.Starter(label="Run Each View", 
-                   message="Run each view using list_views and then read_query"),
+        # cl.Starter(label="Show Database Name", 
+        #            message="Show the database name"),
+        # cl.Starter(label="List Tools", 
+        #            message="List available tools formatted in a markdown table"),
+        # cl.Starter(label="List Tables", 
+        #            message="List the tables using the tool list_tables"),
+        # cl.Starter(label="List Views", 
+        #            message="List the views using list_views"),
+        # cl.Starter(label="Show Schemas", 
+        #            message="Show the schemas of all tables using list_tables and then describe_table"),
+        # cl.Starter(label="List View Definitions", 
+        #            message="List all view definitions using list_views and describe_view. Put the descriptions in markdown code blocks."),
+        # cl.Starter(label="Show Rows in All Tables", 
+        #            message="Show 5 rows in each table by using list_tables and then read_query to display 5 rows in each table"),
+        # cl.Starter(label="Run Each View", 
+        #            message="Run each view using list_views and then read_query"),
     ]
 
 # Convert MCP tool schema to OpenAI tool schema

@@ -81,12 +81,12 @@ Here are the tables since they are so small
 
 ## Example Chat Logs About Database
 
-Here is an [Example Chat Log](https://calvinw.github.io/chainlit-mcp-client/example_chat_with_sqlite_mcp_server.html) about the database
+Here is an [Example Chat Log](https://calvinw.github.io/chainlit-mcp-client/html/example_chat_with_sqlite_mcp_server.html) about the database
 
-Here is an example [Show SQL and Tables Info](https://calvinw.github.io/chainlit-mcp-client/list_all_sql_and_table_state.html) showing that the LLM can list the SQL commands it performs and the state of the tables afterwards. 
+Here is an example [Show SQL and Tables Info](https://calvinw.github.io/chainlit-mcp-client/html/list_all_sql_and_table_state.html) showing that the LLM can list the SQL commands it performs and the state of the tables afterwards. 
 
 Here is an example of making a new table and moving information to that table
-[Adding Customer Table](https://calvinw.github.io/chainlit-mcp-client/adding_customer_table.html)
+[Adding Customer Table](https://calvinw.github.io/chainlit-mcp-client/html/adding_customer_table.html)
 
 ## Business Managment Benchmarks 
 
