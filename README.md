@@ -1,4 +1,23 @@
-# MCP Sqlite Server 
+
+## Installation instructions for running Chainlit app locally:
+
+If you are running this locally:
+
+```bash
+uv venv
+source .venv/bin/activate
+uv pip install -r requirements.txt
+./entrypoint.sh
+```
+
+If you are setting a local MCPS for development in a different directory, then install them like this, using path to python and the server:
+
+## MCP greet server
+```bash
+../mcp-greet/.venv/bin/python ../mcp-greet/server.py
+```
+
+# MCP Bus Mgmt Dolt Database 
 
 ## Coffee Shop Database
 
