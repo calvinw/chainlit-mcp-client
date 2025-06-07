@@ -14,9 +14,8 @@ auto_tag_thread = true
 edit_message = true
 
 [UI]
-name = "Coffee Shop LLM Assistant"
-description = "A chatbot for accessing the coffee shop database"
-cot = "full"
+name = "Chainlit MCP Client"
+description = "A chatbot for accessing using MCPS"
 
 [meta]
 generated_by = "2.4.0"
