@@ -1,5 +1,4 @@
-chainlit==2.5.5
-anthropic
-openai>=1.0.0
+chainlit
+openai
 python-dotenv
-mcp-server-sqlite
+mcp

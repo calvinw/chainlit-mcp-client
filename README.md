@@ -1,14 +1,18 @@
-# Dolt Database Explorer
-
 ### Live Demo Version (uses OPENROUTER\_API\_KEY)
 
-[Mcp Chainit App](https://chainlit-mcp-client-48a066d63642.herokuapp.com)
+[Chainit MCP Client](https://chainlit-mcp-client-48a066d63642.herokuapp.com)
 
 ### Version with Database Display (uses OPENROUTER\_API\_KEY)
 
-[Mcp Chainit App With Database Display](https://calvinw.github.io/chainlit-mcp-client/iframe/index-chainlit-frame.html)
+[Chainit MCP Client With Database Display](https://calvinw.github.io/chainlit-mcp-client/iframe/index-chainlit-frame.html)
 
-## Dolt Database MCP
+After you start put in your OPENROUTER\_API\_KEY, this will be saved in local storage for the browser. Next you may want to load up some MCP servers to work with.
+
+Go to the wrench icon and you can load up local or remote MCPS with this Chainlit app. 
+
+You can load up an MCPS at this point. We give details of the D
+
+## MCP Dolt Database
 
 With this MCP you can explore any dolt database in the format:
 
@@ -23,7 +27,7 @@ For example `calvinw/coffee-shop/main` is [here](https://www.dolthub.com/reposit
 
 You will be able only be able to query it in *view* only mode unless you pass it a dolt api token.
 
-## Setting (and Connecting) the Dolt Database MCP
+## Setting (and Connecting) the MCP Dolt Database
 
 Click on the plug icon to set up the MCP:
 
