@@ -1,48 +1,109 @@
-# MCP Sqlite Server 
+# Dolt Database Explorer
 
-## Coffee Shop Database
+### Live Demo Version (uses OPENROUTER\_API\_KEY)
 
-This database is [here](https://www.dolthub.com/repositories/calvinw/coffee-shop)
+[Mcp Chainit App](https://chainlit-mcp-client-48a066d63642.herokuapp.com)
 
-You will be able only be able to query it in *view* only mode.
+### Version with Database Display (uses OPENROUTER\_API\_KEY)
 
-You can see the structure of the database [here](https://www.dolthub.com/repositories/calvinw/coffee-shop/schema/main)
+[Mcp Chainit App With Database Display](https://calvinw.github.io/chainlit-mcp-client/iframe/index-chainlit-frame.html)
 
-To set the DoltMcpServer to use this database go to the DoltMcpServer settings and adjust like this:
+## Dolt Database MCP
 
+With this MCP you can explore any dolt database in the format:
+
+owner/database/branch
+
+where 
+ - `owner` is the database owner
+ - `database` is the database name
+ - `branch` is the branch of the database (typically its `main`)
+
+For example `calvinw/coffee-shop/main` is [here](https://www.dolthub.com/repositories/calvinw/coffee-shop)
+
+You will be able only be able to query it in *view* only mode unless you pass it a dolt api token.
+
+## Setting (and Connecting) the Dolt Database MCP
+
+Click on the plug icon to set up the MCP:
+
+### Type (dropdown on the right) 
+```bash
+SSE 
+```
 ### Name 
 ```bash
-DoltMcpServer
+Dolt SSE Server
 ```
-### Command
+### Server URL 
 ```bash
-uvx bus-mgmt-dolt-mcp-server --db calvinw/coffee-shop/main
+https://minimal-remote-mcp-292426023908.us-central1.run.app/sse
 ```
 
-The parts to the --db are the user/database/branch where the user is the name of the owner of the databse, not the user of the MCP server. Then the database is the name of the database and the last part is the branch.
+## Tools Available 
 
-Here are the available tools
+Here are the Dolt database explorer tools available. You can also ask the LLM to give them to you:
 
-| Tool Name                 | Description                                                                                                                                |
-|---------------------------|--------------------------------------------------------------------------------------------------------------------------------------------|
-| `export_views_statements` | Export DROP VIEW and CREATE VIEW statements for all views. First outputs all DROP VIEW IF EXISTS statements, then outputs the CREATE VIEW statements. |
-| `read_query`              | Execute SQL read queries safely on the Dolt database                                                                                       |
-| `write_query`             | Execute write operations (INSERT, UPDATE, DELETE, CREATE, DROP, ALTER, RENAME) on the Dolt database. Handles polling for asynchronous operations. |
-| `list_tables`             | List the BASE tables in the database (excluding views)                                                                                     |
-| `describe_table`          | Describe the structure of a specific table. Handles table names that require quoting (e.g., containing spaces) automatically.                |
-| `download_table_csv`      | Downloads the content of a specific table as CSV text using the DoltHub API. Handles table names that require quoting automatically.         |
-| `list_views`              | List the views in the database                                                                                                             |
-| `describe_view`           | Show the CREATE VIEW statement for a specific view. Handles view names that require quoting (e.g., containing spaces) automatically.         |
-| `create_view`             | Create a new view in the database using the provided SELECT query. Handles view names that require quoting (e.g., containing spaces) automatically. Uses the write_query tool for execution. |
-| `drop_view`               | Drop a view from the database. Handles view names that require quoting (e.g., containing spaces) automatically. Uses the write_query tool for execution. |
-| `drop_all_views`          | Drop all views from the database by listing all views and invoking drop_view for each. If a drop fails due to a timeout, the function will retry the drop once. |
-| `greet`                   |                                                                                                                                            |
-| `get_current_database`    | Return the currently configured database connection string in user/database/branch format.                                                 |
-| `set_current_database`    | Set the active database connection string. Expects format: user/database/branch.                                                           |
 
-Here are the tables since they are so small
+| Tool Name | Description |
+|-----------|-------------|
+| `read_query` | Execute SQL read queries safely on the Dolt database. Takes a SQL query and database string as parameters. |
+| `write_query` | Execute write operations (INSERT, UPDATE, DELETE, CREATE, DROP, ALTER, RENAME) on the Dolt database. Handles polling for asynchronous operations. Requires an API token in addition to SQL query and database string. |
+| `list_tables` | List the BASE tables in the database (excluding views). Only requires the database string parameter. |
+| `describe_table` | Describe the structure of a specific table. Handles table names that require quoting automatically. Takes table name and database string as parameters. |
+| `list_views` | List the views in the database. Only requires the database string parameter. |
+| `describe_view` | Show the CREATE VIEW statement for a specific view. Takes view name and database string as parameters. |
 
-### Products Table
+These tools allow you to explore and interact with Dolt databases - from basic schema exploration with `list_tables` and `describe_table`, to querying data with `read_query`, and making changes with `write_query`. The write operations require an API token for authentication, while read operations do not.
+
+
+## Databases You Can Try 
+
+### BusMgmtBenchmarks (calvinw/BusMgmtBenchmarks/main)
+
+The financial BusMgmtBenchmarks database is:    
+```bash
+calvinw/BusMgmtBenchmarks/main
+```
+[DoltHub version](https://www.dolthub.com/repositories/calvinw/BusMgmtBenchmarks) | [Schema documentation](https://www.dolthub.com/repositories/calvinw/BusMgmtBenchmarks/schema/main)
+
+This is the BusMgmtBenchmarks project is described [here](https://www.dolthub.com/repositories/calvinw/BusMgmtBenchmarks)
+
+### Retail Orders (calvinw/retail-orders/main)
+
+A simple retail-orders example is here:
+```bash
+calvinw/retail-orders/main
+```
+[DoltHub version](https://www.dolthub.com/repositories/calvinw/retail-orders) | [Schema documentation](https://www.dolthub.com/repositories/calvinw/retail-orders/schema/main)
+
+### Engagement Marketing (calvinw/engagement/main)
+
+An example of an engagment marketing database:
+```bash
+calvinw/engagement/main
+```
+[DoltHub version](https://www.dolthub.com/repositories/calvinw/engagement) | [Schema documentation](https://www.dolthub.com/repositories/calvinw/engagement/schema/main)
+
+### Sakila DVD Rental Store (calvinw/sakila/main)
+
+Dolt version of well known sakila database:
+
+```bash
+calvinw/sakila/main
+```
+[DoltHub version](https://www.dolthub.com/repositories/calvinw/sakila) | [Schema documentation](https://www.dolthub.com/repositories/calvinw/sakila/schema/main)
+
+
+## Prompts to Try 
+
+- Can you tell me what tables are in the database?
+- Can you describe the schema of the products table?
+- Can you summarize the database and tell me what the tables are for?
+
+### Example of Coffee Shop database (calvinw/coffee-shop/main)  
+
+#### products Table
 
 | Product ID | Name               | Category | Price | Description                                                   | In Stock |
 |------------|-------------------|----------|-------|---------------------------------------------------------------|----------|
@@ -57,7 +118,7 @@ Here are the tables since they are so small
 | 9          | Iced Coffee        | Coffee   | $3.25 | Chilled coffee served with ice                                | Yes |
 | 10         | Chai Latte         | Tea      | $3.95 | Spiced tea with steamed milk                                  | Yes |
 
-### Orders Table
+#### Orders Table
 
 | Order ID | Product ID | Customer Name  | Quantity | Order Date           | Completed |
 |----------|------------|----------------|----------|----------------------|-----------|
@@ -71,42 +132,4 @@ Here are the tables since they are so small
 | 8        | 9          | Jennifer Lee   | 1        | 2025-04-13 11:42:00  | No        |
 | 9        | 4          | Robert Taylor  | 1        | 2025-04-13 12:10:00  | No        |
 | 10       | 6          | Lisa Anderson  | 3        | 2025-04-13 12:25:00  | No        |
-
-
-## Prompts to Try 
-
-> Can you tell me what tables are in the database?
-
-> Can you describe the schema of the products table?
-
-## Example Chat Logs About Database
-
-Here is an [Example Chat Log](https://calvinw.github.io/chainlit-mcp-client/html/example_chat_with_sqlite_mcp_server.html) about the database
-
-Here is an example [Show SQL and Tables Info](https://calvinw.github.io/chainlit-mcp-client/html/list_all_sql_and_table_state.html) showing that the LLM can list the SQL commands it performs and the state of the tables afterwards. 
-
-Here is an example of making a new table and moving information to that table
-[Adding Customer Table](https://calvinw.github.io/chainlit-mcp-client/html/adding_customer_table.html)
-
-## Business Managment Benchmarks 
-
-This is the BusMgmtBenchmarks database with the details 
-given [here](https://www.dolthub.com/repositories/calvinw/BusMgmtBenchmarks)
-
-You will be able only be able to query it in *view* only mode.
-
-You have to set the DoltMcpServer to access this database like this
-
-Click on the plug icon and enter
-
-### Name 
-```bash
-DoltMcpServer
-```
-### Command
-```bash
-uvx bus-mgmt-dolt-mcp-server --db calvinw/BusMgmtBenchmarks/main 
-```
-
-You can see the structure of the database [here](https://www.dolthub.com/repositories/calvinw/BusMgmtBenchmarks/schema/main)
 
