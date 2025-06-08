@@ -291,11 +291,11 @@ async def start_chat():
                 id="Model",
                 label="OpenRouter Model",
                 values=[
+                        "google/gemini-2.5-flash-preview-05-20",
                         "google/gemini-2.5-flash-preview",
                         "google/gemini-2.5-flash-preview:thinking",
                         "google/gemini-2.5-pro-preview-05-06",
                         "google/gemini-2.5-pro-preview",
-                        "google/gemini-2.5-flash-preview-05-20",
                         "google/gemini-2.5-flash-preview-05-20:thinking",
                         "google/gemini-pro-1.5",
                         "google/gemini-flash-1.5",
