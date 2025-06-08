@@ -41,7 +41,7 @@ Dolt SSE Server
 ```
 ### Server URL 
 ```bash
-https://minimal-remote-mcp-292426023908.us-central1.run.app/sse
+https://mcp-dolt-database-3b846e43fd3d.herokuapp.com/
 ```
 
 ## Tools Available 
