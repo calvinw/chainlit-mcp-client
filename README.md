@@ -47,23 +47,6 @@ For example `calvinw/coffee-shop/main` is [here](https://www.dolthub.com/reposit
 
 You will be able only be able to query it in *view* only mode unless you pass it a dolt api token.
 
-## Setting (and Connecting) the MCP Dolt Database
-
-Click on the plug icon to set up the MCP:
-
-### Type (dropdown on the right) 
-```bash
-SSE 
-```
-### Name 
-```bash
-Dolt SSE Server
-```
-### Server URL 
-```bash
-https://mcp-dolt-database-3b846e43fd3d.herokuapp.com/
-```
-
 ## Tools Available 
 
 Here are the Dolt database explorer tools available. You can also ask the LLM to give them to you:

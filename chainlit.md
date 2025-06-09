@@ -15,7 +15,7 @@ Go to the wrench icon and you can load up local or remote MCPS with this Chainli
 ### MCP Greet Server   
 Mode: SSE    
 Name: mcp-greet    
-ServerURL: https://mcp-dolt-database-3b846e43fd3d.herokuapp.com/sse
+ServerURL: https://mcp-greet-5ea4aa63d7e9.herokuapp.com/sse
 
 ### MCP Dolt Database Server   
 Mode: SSE    
@@ -47,23 +47,6 @@ For example `calvinw/coffee-shop/main` is [here](https://www.dolthub.com/reposit
 
 You will be able only be able to query it in *view* only mode unless you set up
 a dolt api key and pass that to the LLM to pass to the MCP (be careful!)
-
-When you are on the setup page for MCPs, enter in the following:
-
-### Type (dropdown on the right) 
-```bash
-SSE 
-```
-### Name 
-```bash
-MCP Dolt Database
-```
-### Server URL 
-```bash
-https://minimal-remote-mcp-292426023908.us-central1.run.app/sse
-```
-
-This loads up a remote MCP version of the mcp-dolt-database
 
 ## Tools Available 
 
