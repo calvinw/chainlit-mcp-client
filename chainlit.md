@@ -15,7 +15,7 @@ Go to the wrench icon and you can load up local or remote MCPS with this Chainli
 ### MCP Greet Server   
 Mode: SSE    
 Name: mcp-greet    
-ServerURL: https://mcp-greet-5ea4aa63d7e9.herokuapp.com/sse
+ServerURL: https://minimal-remote-mcp-292426023908.us-central1.run.app/sse
 
 ### MCP Dolt Database Server   
 Mode: SSE    
