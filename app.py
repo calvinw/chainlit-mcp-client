@@ -16,8 +16,7 @@ logger = logging.getLogger(__name__)
 
 load_dotenv()
 
-SYSTEM = """You are a helpful assistant working on MySQL queries with the user. When you list rows from tables format them as a markdown table. When you list any views or SQL code put it in codeblocks."""
-
+SYSTEM = """You are a helpful assistant working with tools. When you are asked to list your tools provide a nice markdown table with the brief tool name, the parameters and a description of the tool. Make sure the toolname is brief."""
 
 import chainlit as cl
 
@@ -42,22 +41,8 @@ def flatten(xss):
 @cl.set_starters
 async def set_starters():
     return [
-        # cl.Starter(label="Show Database Name", 
-        #            message="Show the database name"),
-        # cl.Starter(label="List Tools", 
-        #            message="List available tools formatted in a markdown table"),
-        # cl.Starter(label="List Tables", 
-        #            message="List the tables using the tool list_tables"),
-        # cl.Starter(label="List Views", 
-        #            message="List the views using list_views"),
-        # cl.Starter(label="Show Schemas", 
-        #            message="Show the schemas of all tables using list_tables and then describe_table"),
-        # cl.Starter(label="List View Definitions", 
-        #            message="List all view definitions using list_views and describe_view. Put the descriptions in markdown code blocks."),
-        # cl.Starter(label="Show Rows in All Tables", 
-        #            message="Show 5 rows in each table by using list_tables and then read_query to display 5 rows in each table"),
-        # cl.Starter(label="Run Each View", 
-        #            message="Run each view using list_views and then read_query"),
+        cl.Starter(label="List Your Tools", 
+                   message="Can you list your available tools")
     ]
 
 # Convert MCP tool schema to OpenAI tool schema
@@ -158,40 +143,6 @@ async def call_tool(tool_call):
         else:
             # Fallback if content is not available
             result_text = "Unable to retrieve tables"
-        
-        # # Special case for list_tables to extract just the table names
-        # if tool_name == "list_tables" and tool_output is not None:
-        #     # Extract the content field which contains TextContent objects
-        #     if hasattr(tool_output, 'content') and tool_output.content:
-        #         # Find the TextContent object
-        #         for item in tool_output.content:
-        #             if hasattr(item, 'text'):
-        #                 # This is what we want - just the table names text
-        #                 result_text = item.text
-        #                 break
-        #         else:
-        #             # If we didn't find a TextContent with text attribute
-        #             result_text = "No tables found"
-        #     else:
-        #         # Fallback if content is not available
-        #         result_text = "Unable to retrieve tables"
-        #
-        # # For all other tools, use the standard extraction logic
-        # else:
-        #     # Extract the text content from the CallToolResult object
-        #     if tool_output is not None:
-        #         # If it's an iterable (like a list), join the text of each item
-        #         if hasattr(tool_output, '__iter__') and not isinstance(tool_output, str):
-        #             result_text = "\n".join([str(item.text) if hasattr(item, 'text') else str(item) for item in tool_output])
-        #         # If it has a text attribute directly
-        #         elif hasattr(tool_output, 'text'):
-        #             result_text = tool_output.text
-        #         else:
-        #             result_text = str(tool_output)
-        #     else:
-        #         result_text = "No output returned"
-        #     
-        # current_step.output = result_text  # Log the extracted text
         
     except Exception as e:
         # Handle and log any exceptions during tool execution
@@ -317,8 +268,8 @@ async def start_chat():
                         "openai/o1-mini",
                         "openai/o1-preview",
                         "openai/gpt-4.1",
-                        "openai/gpt-4.1-mini",
                         "openai/gpt-4.1-nano",
+                        "openai/gpt-4.1-mini",
                         "openai/gpt-3.5-turbo",
                         "openai/codex-mini",
                         "qwen/qwen3-30b-a3b",
@@ -334,7 +285,7 @@ async def start_chat():
                         "mistralai/mistral-tiny",
                         "mistralai/mistral-medium"
                 ],
-                initial_index=0,
+                initial_index=27,
             ),
             Slider(
                 id="Temperature",
@@ -349,7 +300,7 @@ async def start_chat():
     
     # Store initial settings values in user session
     initial_settings = {
-        "Model": "google/gemini-2.5-flash-preview",
+        "Model": "openai/gpt-4.1-mini",
         "Temperature": 0                
     }
     cl.user_session.set("settings", initial_settings)
