@@ -13,22 +13,22 @@ After you start put in your OPENROUTER\_API\_KEY, this will be saved in local st
 Go to the wrench icon and you can load up local or remote MCPS with this Chainlit app. 
 
 ### MCP Greet Server   
-Mode: SSE    
+Type: SSE    
 Name: mcp-greet    
-ServerURL: https://minimal-remote-mcp-292426023908.us-central1.run.app/sse
+ServerURL: https://mcp-greet-5ea4aa63d7e9.herokuapp.com/sse
 
 ### MCP Dolt Database Server   
-Mode: SSE    
+Type: SSE    
 Name: mcp-dolt-database    
 ServerURL: https://mcp-dolt-database-3b846e43fd3d.herokuapp.com/sse
 
 ### MCP SEC 10ks Server   
-Mode: SSE    
+Type: SSE    
 Name: mcp-sec-10ks    
 ServerURL: https://mcp-sec-10ks-0f5ce95846d9.herokuapp.com/sse
 
 ### MCP YFinance 10ks Server    
-Mode: SSE    
+Type: SSE    
 Name: mcp-yfinance-10ks   
 ServerURL: https://mcp-yfinance-10ks-89c87b6d03d1.herokuapp.com/sse
 

@@ -15,7 +15,7 @@ You can load up some remote MCPS at this point, here are the details:
 ### MCP Greet Server  
 Type: SSE  
 Name: mcp-greet   
-ServerURL: https://minimal-remote-mcp-292426023908.us-central1.run.app/sse
+ServerURL: https://mcp-greet-5ea4aa63d7e9.herokuapp.com/sse
 
 ### MCP Dolt Database Server  
 Type: SSE  
