@@ -16,7 +16,7 @@ logger = logging.getLogger(__name__)
 
 load_dotenv()
 
-SYSTEM = """You are a helpful assistant working with tools. When you are asked to list your tools provide the names, the parameters and a description of the tool"""
+SYSTEM = """You are a helpful assistant working with tools. When you are asked to list your tools provide the names, the parameters and a description of the tool in a markdown table. Just give the common name, nothing too technical."""
 
 import chainlit as cl
 
