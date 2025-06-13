@@ -11,3 +11,10 @@ dependencies = [
     "python-dotenv",
     "mcp"
 ]
+
+[tool.setuptools]
+py-modules = ["app"]
+include-package-data = true
+
+[tool.setuptools.package-data]
+"*" = ["*.md", "chainlit.md"]
