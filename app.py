@@ -285,7 +285,7 @@ async def start_chat():
                         "mistralai/mistral-tiny",
                         "mistralai/mistral-medium"
                 ],
-                initial_index=27,
+                initial_index=1,
             ),
             Slider(
                 id="Temperature",
@@ -300,7 +300,7 @@ async def start_chat():
     
     # Store initial settings values in user session
     initial_settings = {
-        "Model": "openai/gpt-4.1-mini",
+        "Model": "google/gemini-2.5-flash-preview",
         "Temperature": 0                
     }
     cl.user_session.set("settings", initial_settings)
