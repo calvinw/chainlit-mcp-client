@@ -42,7 +42,7 @@ def flatten(xss):
 async def set_starters():
     return [
         cl.Starter(label="List Your Tools", 
-                   message="Can you list your available tools. Make sure to give the names and parameters and a description.")
+                   message="Can you list your available tools. Make sure to give the names and parameters and a description. Format it in a markdown table.")
     ]
 
 # Convert MCP tool schema to OpenAI tool schema
@@ -285,7 +285,7 @@ async def start_chat():
                         "mistralai/mistral-tiny",
                         "mistralai/mistral-medium"
                 ],
-                initial_index=1,
+                initial_index=0,
             ),
             Slider(
                 id="Temperature",
@@ -300,7 +300,7 @@ async def start_chat():
     
     # Store initial settings values in user session
     initial_settings = {
-        "Model": "google/gemini-2.5-flash-preview",
+        "Model": "google/gemini-2.5-flash-preview-05-20",
         "Temperature": 0                
     }
     cl.user_session.set("settings", initial_settings)
