@@ -20,12 +20,16 @@ WORKDIR /app
 
 # Copy and install Python dependencies
 RUN pip install uv
-
 COPY requirements.txt ./
 RUN pip install --no-cache-dir -r requirements.txt
 
+# Copy application code
 COPY . .
 
+# Create the necessary directory structure for Chainlit
+RUN mkdir -p /app/chainlit_mcp_client/.files
+
+# Make entrypoint executable
 RUN chmod +x /app/entrypoint.sh
 
 EXPOSE 8080
