@@ -10,6 +10,10 @@ import chainlit as cl
 from chainlit.input_widget import Select, TextInput, Slider
 from dotenv import load_dotenv
 
+# Import from models.py and settings_manager.py
+from models import OPENROUTER_MODELS, DEFAULT_MODEL, DEFAULT_TEMPERATURE
+from settings_manager import save_selected_model, load_selected_model
+
 # Configure logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
@@ -17,8 +21,6 @@ logger = logging.getLogger(__name__)
 load_dotenv()
 
 SYSTEM = """You are a helpful assistant with some tools."""
-
-import chainlit as cl
 
 @cl.action_callback("action_button")
 async def on_action(action):
@@ -58,7 +60,11 @@ def mcp_to_openai_tool(mcp_tool):
 
 @cl.on_mcp_connect
 async def on_mcp(connection, session: ClientSession):
+    print(f"🔧 MCP DEBUG: Connecting to MCP server: {connection.name}")
+    
     result = await session.list_tools()
+    print(f"🔧 MCP DEBUG: MCP server '{connection.name}' returned {len(result.tools)} tools")
+    
     # Store raw MCP tool definitions
     mcp_raw_tools = [{
         "name": t.name,
@@ -66,15 +72,25 @@ async def on_mcp(connection, session: ClientSession):
         "input_schema": t.inputSchema,
         } for t in result.tools]
 
+    # Get existing data and ADD to it (don't replace)
     mcp_tools_data = cl.user_session.get("mcp_tools_data", {})
     mcp_tools_data[connection.name] = mcp_raw_tools
     cl.user_session.set("mcp_tools_data", mcp_tools_data)
+    
+    print(f"🔧 MCP DEBUG: Stored {len(mcp_raw_tools)} raw tools for '{connection.name}'")
 
     # Also store OpenAI formatted tools for easy access later
     openai_tools = [mcp_to_openai_tool(tool) for tool in mcp_raw_tools]
     mcp_openai_tools = cl.user_session.get("mcp_openai_tools", {})
     mcp_openai_tools[connection.name] = openai_tools
     cl.user_session.set("mcp_openai_tools", mcp_openai_tools)
+    
+    print(f"🔧 MCP DEBUG: Stored {len(openai_tools)} OpenAI tools for '{connection.name}'")
+    print(f"🔧 MCP DEBUG: Total MCP connections now: {len(mcp_openai_tools)}")
+    
+    # List all connections and their tool counts
+    for conn_name, conn_tools in mcp_openai_tools.items():
+        print(f"🔧 MCP DEBUG: - Connection '{conn_name}': {len(conn_tools)} tools")
 
 @cl.step(type="tool")
 async def call_tool(tool_call):
@@ -173,6 +189,12 @@ async def call_llm(chat_messages, api_key):
     mcp_openai_tools = cl.user_session.get("mcp_openai_tools", {})
     # Flatten the OpenAI-formatted tools from all MCP connections
     tools = flatten([tools for _, tools in mcp_openai_tools.items()])
+    
+    # Debug MCP tools
+    print(f"🔧 MCP DEBUG: Found {len(mcp_openai_tools)} MCP connections")
+    print(f"🔧 MCP DEBUG: Total tools available: {len(tools)}")
+    for conn_name, conn_tools in mcp_openai_tools.items():
+        print(f"🔧 MCP DEBUG: Connection '{conn_name}' has {len(conn_tools)} tools")
 
     # Get settings
     settings = cl.user_session.get("settings", {})
@@ -194,6 +216,9 @@ async def call_llm(chat_messages, api_key):
     if tools:
         api_args["tools"] = tools
         api_args["tool_choice"] = "auto"
+        print(f"🔧 MCP DEBUG: Sending {len(tools)} tools to LLM")
+    else:
+        print("🔧 MCP DEBUG: NO TOOLS AVAILABLE - LLM won't see any tools!")
 
     # Make the API call with the provided API key for this request
     client = await get_openai_client(api_key)
@@ -235,62 +260,28 @@ async def call_llm(chat_messages, api_key):
 
 @cl.on_chat_start
 async def start_chat():
-    # Create settings panel with model selector, temperature slider, and API key input
+    # Load saved model (simple!)
+    saved_model = await load_selected_model()
+    print(f"🟦 PYTHON: Loaded model: {saved_model}")
+    
+    # Find the initial model index
+    initial_model_index = 0
+    if saved_model in OPENROUTER_MODELS:
+        initial_model_index = OPENROUTER_MODELS.index(saved_model)
+    
+    # Create settings panel
     settings = await cl.ChatSettings(
         [
             Select(
                 id="Model",
                 label="OpenRouter Model",
-                values=[
-                        "google/gemini-2.5-flash-preview-05-20",
-                        "google/gemini-2.5-flash-preview",
-                        "google/gemini-2.5-flash-preview:thinking",
-                        "google/gemini-2.5-pro-preview-05-06",
-                        "google/gemini-2.5-pro-preview",
-                        "google/gemini-2.5-flash-preview-05-20:thinking",
-                        "google/gemini-pro-1.5",
-                        "google/gemini-flash-1.5",
-                        "google/gemini-flash-1.5-8b",
-                        "anthropic/claude-opus-4",
-                        "anthropic/claude-sonnet-4",
-                        "anthropic/claude-3.5-haiku",
-                        "anthropic/claude-3.5-haiku-20241022",
-                        "anthropic/claude-3.5-sonnet",
-                        "anthropic/claude-3.7-sonnet",
-                        "anthropic/claude-3-haiku",
-                        "anthropic/claude-3-opus",
-                        "anthropic/claude-3-sonnet",
-                        "openai/gpt-4o",
-                        "openai/gpt-4o-mini",
-                        "openai/o4-mini-high",
-                        "openai/o4-mini",
-                        "openai/o3",
-                        "openai/o1-mini",
-                        "openai/o1-preview",
-                        "openai/gpt-4.1",
-                        "openai/gpt-4.1-nano",
-                        "openai/gpt-4.1-mini",
-                        "openai/gpt-3.5-turbo",
-                        "openai/codex-mini",
-                        "qwen/qwen3-30b-a3b",
-                        "qwen/qwen3-14b",
-                        "qwen/qwen3-32b",
-                        "qwen/qwen3-235b-a22b",
-                        "deepseek/deepseek-chat:free",
-                        "deepseek/deepseek-chat",
-                        "qwen/qwen-2.5-coder-32b-instruct:free",
-                        "qwen/qwen-2.5-coder-32b-instruct",
-                        "mistralai/mistral-large",
-                        "mistralai/mistral-small",
-                        "mistralai/mistral-tiny",
-                        "mistralai/mistral-medium"
-                ],
-                initial_index=0,
+                values=OPENROUTER_MODELS,
+                initial_index=initial_model_index,
             ),
             Slider(
                 id="Temperature",
                 label="Temperature",
-                initial=0,
+                initial=DEFAULT_TEMPERATURE,
                 min=0,
                 max=2,
                 step=0.1,
@@ -298,31 +289,45 @@ async def start_chat():
         ]
     ).send()
     
-    # Store initial settings values in user session
-    initial_settings = {
-        "Model": "google/gemini-2.5-flash-preview-05-20",
-        "Temperature": 0                
-    }
-    cl.user_session.set("settings", initial_settings)
+    # Store settings in user session
+    cl.user_session.set("settings", {
+        "Model": saved_model,
+        "Temperature": DEFAULT_TEMPERATURE
+    })
     
-    # Set session variables for message history and tools
+    # Initialize chat messages only
     cl.user_session.set("chat_messages", [])
-    cl.user_session.set("mcp_tools_data", {})
-    cl.user_session.set("mcp_openai_tools", {})
+    
+    # Preserve MCP data if it exists
+    if not cl.user_session.get("mcp_tools_data"):
+        cl.user_session.set("mcp_tools_data", {})
+    if not cl.user_session.get("mcp_openai_tools"):
+        cl.user_session.set("mcp_openai_tools", {})
 
 # Settings update handler
 @cl.on_settings_update
 async def on_settings_update(settings):
-    # Update all settings in user session
+    # Update settings in user session
     cl.user_session.set("settings", settings)
+    
+    # Save only the model selection to localStorage
+    model = settings.get("Model")
+    if model:
+        await save_selected_model(model)
     
     # If API key was provided, store it in the env user session
     if "api_key" in settings:
         cl.user_session.set("env", {"OPENROUTER_API_KEY": settings["api_key"]})
-    
-    # Get the current model setting
+
+# Chat end handler - save model when chat ends
+@cl.on_chat_end
+async def on_chat_end():
+    """Save model when chat ends"""
+    settings = cl.user_session.get("settings", {})
     model = settings.get("Model")
-    
+    if model:
+        await save_selected_model(model)
+
 @cl.on_message
 async def on_message(msg: cl.Message):
     # Get API key from environment variables in user session

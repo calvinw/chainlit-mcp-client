@@ -16,12 +16,15 @@ edit_message = true
 [UI]
 name = "Chainlit MCP Client"
 description = "A chatbot for accessing using MCPS"
+# Load the settings manager JavaScript file
+# This enables localStorage functionality for model settings persistence
+custom_js = '/public/model_manager.js'
 
 [meta]
 generated_by = "2.4.0"
 
 [features.spontaneous_file_upload]
-enabled = true
+enabled = false 
 accept = [ "*/*",]
 max_files = 20
 max_size_mb = 500
