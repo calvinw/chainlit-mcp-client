@@ -2,6 +2,8 @@ import json
 import asyncio
 import os
 import logging
+import hashlib
+from datetime import datetime
 
 from mcp import ClientSession
 import openai
@@ -17,6 +19,109 @@ logger = logging.getLogger(__name__)
 load_dotenv()
 
 SYSTEM = """You are a helpful assistant with some tools."""
+
+# Available OpenRouter models
+OPENROUTER_MODELS = [
+    # Google Models
+    "google/gemini-2.5-flash-preview-05-20",
+    "google/gemini-2.5-flash-preview",
+    "google/gemini-2.5-flash-preview:thinking",
+    "google/gemini-2.5-pro-preview-05-06",
+    "google/gemini-2.5-pro-preview",
+    "google/gemini-2.5-flash-preview-05-20:thinking",
+    "google/gemini-pro-1.5",
+    "google/gemini-flash-1.5",
+    "google/gemini-flash-1.5-8b",
+    
+    # Anthropic Models
+    "anthropic/claude-opus-4",
+    "anthropic/claude-sonnet-4",
+    "anthropic/claude-3.5-haiku",
+    "anthropic/claude-3.5-haiku-20241022",
+    "anthropic/claude-3.5-sonnet",
+    "anthropic/claude-3.7-sonnet",
+    "anthropic/claude-3-haiku",
+    "anthropic/claude-3-opus",
+    "anthropic/claude-3-sonnet",
+    
+    # OpenAI Models
+    "openai/gpt-4o",
+    "openai/gpt-4o-mini",
+    "openai/o4-mini-high",
+    "openai/o4-mini",
+    "openai/o3",
+    "openai/o1-mini",
+    "openai/o1-preview",
+    "openai/gpt-4.1",
+    "openai/gpt-4.1-nano",
+    "openai/gpt-4.1-mini",
+    "openai/gpt-3.5-turbo",
+    "openai/codex-mini",
+    
+    # Qwen Models
+    "qwen/qwen3-30b-a3b",
+    "qwen/qwen3-14b",
+    "qwen/qwen3-32b",
+    "qwen/qwen3-235b-a22b",
+    "qwen/qwen-2.5-coder-32b-instruct:free",
+    "qwen/qwen-2.5-coder-32b-instruct",
+    
+    # DeepSeek Models
+    "deepseek/deepseek-chat:free",
+    "deepseek/deepseek-chat",
+    
+    # Mistral Models
+    "mistralai/mistral-large",
+    "mistralai/mistral-small",
+    "mistralai/mistral-tiny",
+    "mistralai/mistral-medium"
+]
+
+# Default model selection
+DEFAULT_MODEL = "google/gemini-2.5-flash-preview-05-20"
+DEFAULT_TEMPERATURE = 0
+
+# User settings persistence
+USER_SETTINGS_DIR = "user_settings"
+
+def get_user_id_from_api_key(api_key):
+    """Create a consistent user ID from API key"""
+    if not api_key:
+        return None
+    return hashlib.sha256(api_key.encode()).hexdigest()[:16]
+
+def get_user_settings_path(user_id):
+    """Get the file path for user settings"""
+    os.makedirs(USER_SETTINGS_DIR, exist_ok=True)
+    return os.path.join(USER_SETTINGS_DIR, f"{user_id}.json")
+
+def save_user_settings(user_id, settings):
+    """Save user's preferred settings"""
+    if not user_id:
+        return
+    path = get_user_settings_path(user_id)
+    settings_with_timestamp = {
+        **settings,
+        "last_updated": datetime.now().isoformat()
+    }
+    with open(path, 'w') as f:
+        json.dump(settings_with_timestamp, f, indent=2)
+    logger.info(f"Saved settings for user {user_id}: {settings}")
+
+def load_user_settings(user_id):
+    """Load user's saved settings, return None if none exist"""
+    if not user_id:
+        return None
+    path = get_user_settings_path(user_id)
+    if os.path.exists(path):
+        try:
+            with open(path, 'r') as f:
+                settings = json.load(f)
+            logger.info(f"Loaded settings for user {user_id}: {settings}")
+            return settings
+        except (json.JSONDecodeError, FileNotFoundError) as e:
+            logger.error(f"Error loading settings for user {user_id}: {e}")
+    return None
 
 import chainlit as cl
 
@@ -235,62 +340,40 @@ async def call_llm(chat_messages, api_key):
 
 @cl.on_chat_start
 async def start_chat():
-    # Create settings panel with model selector, temperature slider, and API key input
+    
+    # Check if user has API key from localStorage and can restore preferences
+    user_env = cl.user_session.get("env", {})
+    api_key = user_env.get("OPENROUTER_API_KEY")
+    
+    # Default settings
+    initial_model_index = 0
+    initial_temp = DEFAULT_TEMPERATURE
+    
+    # If API key available from localStorage, try to restore user preferences
+    if api_key:
+        user_id = get_user_id_from_api_key(api_key)
+        saved_settings = load_user_settings(user_id)
+        
+        if saved_settings:
+            # Find index of their preferred model
+            preferred_model = saved_settings.get("Model", DEFAULT_MODEL)
+            if preferred_model in OPENROUTER_MODELS:
+                initial_model_index = OPENROUTER_MODELS.index(preferred_model)
+            initial_temp = saved_settings.get("Temperature", DEFAULT_TEMPERATURE)
+    
+    # Create settings panel with restored or default values
     settings = await cl.ChatSettings(
         [
             Select(
                 id="Model",
                 label="OpenRouter Model",
-                values=[
-                        "google/gemini-2.5-flash-preview-05-20",
-                        "google/gemini-2.5-flash-preview",
-                        "google/gemini-2.5-flash-preview:thinking",
-                        "google/gemini-2.5-pro-preview-05-06",
-                        "google/gemini-2.5-pro-preview",
-                        "google/gemini-2.5-flash-preview-05-20:thinking",
-                        "google/gemini-pro-1.5",
-                        "google/gemini-flash-1.5",
-                        "google/gemini-flash-1.5-8b",
-                        "anthropic/claude-opus-4",
-                        "anthropic/claude-sonnet-4",
-                        "anthropic/claude-3.5-haiku",
-                        "anthropic/claude-3.5-haiku-20241022",
-                        "anthropic/claude-3.5-sonnet",
-                        "anthropic/claude-3.7-sonnet",
-                        "anthropic/claude-3-haiku",
-                        "anthropic/claude-3-opus",
-                        "anthropic/claude-3-sonnet",
-                        "openai/gpt-4o",
-                        "openai/gpt-4o-mini",
-                        "openai/o4-mini-high",
-                        "openai/o4-mini",
-                        "openai/o3",
-                        "openai/o1-mini",
-                        "openai/o1-preview",
-                        "openai/gpt-4.1",
-                        "openai/gpt-4.1-nano",
-                        "openai/gpt-4.1-mini",
-                        "openai/gpt-3.5-turbo",
-                        "openai/codex-mini",
-                        "qwen/qwen3-30b-a3b",
-                        "qwen/qwen3-14b",
-                        "qwen/qwen3-32b",
-                        "qwen/qwen3-235b-a22b",
-                        "deepseek/deepseek-chat:free",
-                        "deepseek/deepseek-chat",
-                        "qwen/qwen-2.5-coder-32b-instruct:free",
-                        "qwen/qwen-2.5-coder-32b-instruct",
-                        "mistralai/mistral-large",
-                        "mistralai/mistral-small",
-                        "mistralai/mistral-tiny",
-                        "mistralai/mistral-medium"
-                ],
-                initial_index=0,
+                values=OPENROUTER_MODELS,
+                initial_index=initial_model_index,
             ),
             Slider(
                 id="Temperature",
                 label="Temperature",
-                initial=0,
+                initial=initial_temp,
                 min=0,
                 max=2,
                 step=0.1,
@@ -300,8 +383,8 @@ async def start_chat():
     
     # Store initial settings values in user session
     initial_settings = {
-        "Model": "google/gemini-2.5-flash-preview-05-20",
-        "Temperature": 0                
+        "Model": OPENROUTER_MODELS[initial_model_index],
+        "Temperature": initial_temp               
     }
     cl.user_session.set("settings", initial_settings)
     
@@ -313,22 +396,51 @@ async def start_chat():
 # Settings update handler
 @cl.on_settings_update
 async def on_settings_update(settings):
+    # Get previous settings to check for model changes
+    previous_settings = cl.user_session.get("settings", {})
+    previous_model = previous_settings.get("Model")
+    new_model = settings.get("Model")
+    
     # Update all settings in user session
     cl.user_session.set("settings", settings)
     
+    # If model changed and we have chat messages (not a new chat), show model selection message
+    chat_messages = cl.user_session.get("chat_messages", [])
+    if previous_model and new_model and previous_model != new_model and len(chat_messages) > 0:
+        await cl.Message(f"Switched to {new_model}").send()
+    
     # If API key was provided, store it in the env user session
     if "api_key" in settings:
-        cl.user_session.set("env", {"OPENROUTER_API_KEY": settings["api_key"]})
-    
-    # Get the current model setting
-    model = settings.get("Model")
+        api_key = settings["api_key"]
+        cl.user_session.set("env", {"OPENROUTER_API_KEY": api_key})
+        
+        # Also save user preferences for future sessions
+        user_id = get_user_id_from_api_key(api_key)
+        if user_id:
+            user_prefs = {
+                "Model": settings.get("Model"),
+                "Temperature": settings.get("Temperature")
+            }
+            save_user_settings(user_id, user_prefs)
+    else:
+        # Even without API key change, save preferences if we have an existing API key
+        user_env = cl.user_session.get("env", {})
+        api_key = user_env.get("OPENROUTER_API_KEY")
+        if api_key:
+            user_id = get_user_id_from_api_key(api_key)
+            if user_id:
+                user_prefs = {
+                    "Model": settings.get("Model"),
+                    "Temperature": settings.get("Temperature")
+                }
+                save_user_settings(user_id, user_prefs)
     
 @cl.on_message
 async def on_message(msg: cl.Message):
     # Get API key from environment variables in user session
     user_env = cl.user_session.get("env", {})
     api_key = user_env.get("OPENROUTER_API_KEY")
-    chat_messages = cl.user_session.get("chat_messages")
+    chat_messages = cl.user_session.get("chat_messages", [])
     chat_messages.append({"role": "user", "content": msg.content})
 
     if not chat_messages or chat_messages[0].get("role") != "system":
