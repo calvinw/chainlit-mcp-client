@@ -147,7 +147,7 @@ def flatten(xss):
 async def set_starters():
     return [
         cl.Starter(label="List Your Tools", 
-                   message="Can you list your available tools. Make sure to give the names and parameters and a description. Format it in a markdown table.")
+                   message="Can you list your available tools. Make sure to give the names and parameters and a description. Format it in table.")
     ]
 
 # Convert MCP tool schema to OpenAI tool schema
