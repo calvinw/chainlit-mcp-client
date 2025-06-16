@@ -9,7 +9,7 @@ from mcp import ClientSession
 import openai
 
 import chainlit as cl
-from chainlit.input_widget import Select, TextInput, Slider
+from chainlit.input_widget import Select, TextInput, Slider, Switch
 from dotenv import load_dotenv
 
 # Configure logging
@@ -126,10 +126,48 @@ def load_user_settings(user_id):
 import chainlit as cl
 
 @cl.action_callback("action_button")
-async def on_action(action):
-    await cl.Message(content=f"Executed {action.name}").send()
-    # Optionally remove the action button from the chatbot user interface
-    await action.remove()
+async def action_button_callback(action):
+    await handle_action(action)
+
+async def handle_action(action):
+    """Handle all action button clicks"""
+    if action.name == "action_button":
+        await cl.Message(content=f"Executed {action.name}").send()
+        return
+    
+    # Handle tool-specific action button clicks
+    if action.name.startswith("tool_"):
+        payload = action.payload
+        tool_name = payload.get("tool_name")
+        params = payload.get("params", {})
+        connection_name = payload.get("connection")
+        
+        # Format parameters as function call
+        if params:
+            # Format values properly (strings in quotes, others as-is)
+            formatted_params = []
+            for k, v in params.items():
+                if isinstance(v, str):
+                    formatted_params.append(f'"{v}"')
+                else:
+                    formatted_params.append(str(v))
+            params_str = ",".join(formatted_params)
+        else:
+            params_str = ""
+        
+        # Create a message that looks like a function call
+        message_content = f"Call {tool_name}({params_str})"
+        
+        # Show the function call and process it
+        await cl.Message(content=f"⚡ {message_content}").send()
+        
+        # Create a fake message object and trigger the message handler
+        class FakeMessage:
+            def __init__(self, content):
+                self.content = content
+        
+        fake_msg = FakeMessage(message_content)
+        await on_message(fake_msg)
 
 @cl.on_chat_start
 async def start():
@@ -142,6 +180,52 @@ async def start():
 
 def flatten(xss):
     return [x for xs in xss for x in xs]
+
+def generate_sample_params(input_schema):
+    """Generate parameters using defaults from schema or reasonable fallbacks"""
+    if not input_schema or not isinstance(input_schema, dict):
+        return {}
+    
+    properties = input_schema.get("properties", {})
+    sample_params = {}
+    
+    for param_name, param_info in properties.items():
+        # First check if there's a default value in the schema
+        if "default" in param_info:
+            sample_params[param_name] = param_info["default"]
+            continue
+            
+        param_type = param_info.get("type", "string")
+        
+        # Only add non-required parameters or provide sensible defaults
+        if param_type == "string":
+            if param_name == "sql":
+                sample_params[param_name] = "SELECT * FROM customers LIMIT 5"
+            elif "query" in param_name.lower():
+                sample_params[param_name] = "sample query"
+            else:
+                # Only add if it's required or has an example
+                required = input_schema.get("required", [])
+                if param_name in required or "example" in param_info:
+                    sample_params[param_name] = param_info.get("example", f"sample_{param_name}")
+        elif param_type == "number" or param_type == "integer":
+            if param_name in ["a", "x", "num1"]:
+                sample_params[param_name] = 34.3
+            elif param_name in ["b", "y", "num2"]:
+                sample_params[param_name] = 4.5
+            else:
+                sample_params[param_name] = param_info.get("example", 42)
+        elif param_type == "boolean":
+            sample_params[param_name] = param_info.get("example", True)
+        elif param_type == "array":
+            sample_params[param_name] = param_info.get("example", ["example"])
+        else:
+            # Only add if required
+            required = input_schema.get("required", [])
+            if param_name in required:
+                sample_params[param_name] = param_info.get("example", f"sample_{param_name}")
+    
+    return sample_params
 
 @cl.set_starters
 async def set_starters():
@@ -180,6 +264,56 @@ async def on_mcp(connection, session: ClientSession):
     mcp_openai_tools = cl.user_session.get("mcp_openai_tools", {})
     mcp_openai_tools[connection.name] = openai_tools
     cl.user_session.set("mcp_openai_tools", mcp_openai_tools)
+
+    # Check if user wants default tool call buttons
+    settings = cl.user_session.get("settings", {})
+    create_tool_buttons = settings.get("CreateToolButtons", False)
+    
+    if create_tool_buttons:
+        # Create action buttons for each tool with sample parameters
+        actions = []
+        for tool in mcp_raw_tools:
+            # Generate sample parameters based on the tool's input schema
+            sample_params = generate_sample_params(tool.get("input_schema", {}))
+            
+            action_name = f"tool_{tool['name']}"
+            
+            # Register callback for this specific tool action
+            @cl.action_callback(action_name)
+            async def tool_action_callback(action):
+                await handle_action(action)
+            
+            # Format parameters for button label
+            if sample_params:
+                # Format values properly (strings in quotes, others as-is)
+                formatted_params = []
+                for k, v in sample_params.items():
+                    if isinstance(v, str):
+                        formatted_params.append(f'"{v}"')
+                    else:
+                        formatted_params.append(str(v))
+                params_display = ",".join(formatted_params)
+                button_label = f"🛠️ {tool['name']}({params_display})"
+            else:
+                button_label = f"🛠️ {tool['name']}()"
+            
+            actions.append(
+                cl.Action(
+                    name=action_name, 
+                    payload={
+                        "tool_name": tool["name"],
+                        "params": sample_params,
+                        "connection": connection.name
+                    }, 
+                    label=button_label
+                )
+            )
+        
+        if actions:
+            await cl.Message(
+                content=f"🌐 Connected to **{connection.name}** MCP server with {len(actions)} tools. Click any button to try a tool with sample parameters:",
+                actions=actions
+            ).send()
 
 @cl.step(type="tool")
 async def call_tool(tool_call):
@@ -348,6 +482,7 @@ async def start_chat():
     # Default settings
     initial_model_index = 0
     initial_temp = DEFAULT_TEMPERATURE
+    initial_tool_buttons = False  # Default to off
     
     # If API key available from localStorage, try to restore user preferences
     if api_key:
@@ -360,6 +495,7 @@ async def start_chat():
             if preferred_model in OPENROUTER_MODELS:
                 initial_model_index = OPENROUTER_MODELS.index(preferred_model)
             initial_temp = saved_settings.get("Temperature", DEFAULT_TEMPERATURE)
+            initial_tool_buttons = saved_settings.get("CreateToolButtons", False)
     
     # Create settings panel with restored or default values
     settings = await cl.ChatSettings(
@@ -377,6 +513,11 @@ async def start_chat():
                 min=0,
                 max=2,
                 step=0.1,
+            ),
+            Switch(
+                id="CreateToolButtons",
+                label="Create Default Tool Calls",
+                initial=initial_tool_buttons,
             )
         ]
     ).send()
@@ -384,7 +525,8 @@ async def start_chat():
     # Store initial settings values in user session
     initial_settings = {
         "Model": OPENROUTER_MODELS[initial_model_index],
-        "Temperature": initial_temp               
+        "Temperature": initial_temp,
+        "CreateToolButtons": initial_tool_buttons               
     }
     cl.user_session.set("settings", initial_settings)
     
@@ -419,7 +561,8 @@ async def on_settings_update(settings):
         if user_id:
             user_prefs = {
                 "Model": settings.get("Model"),
-                "Temperature": settings.get("Temperature")
+                "Temperature": settings.get("Temperature"),
+                "CreateToolButtons": settings.get("CreateToolButtons")
             }
             save_user_settings(user_id, user_prefs)
     else:
@@ -431,7 +574,8 @@ async def on_settings_update(settings):
             if user_id:
                 user_prefs = {
                     "Model": settings.get("Model"),
-                    "Temperature": settings.get("Temperature")
+                    "Temperature": settings.get("Temperature"),
+                    "CreateToolButtons": settings.get("CreateToolButtons")
                 }
                 save_user_settings(user_id, user_prefs)
     

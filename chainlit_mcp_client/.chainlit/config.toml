@@ -21,7 +21,7 @@ description = "A chatbot for accessing using MCPS"
 generated_by = "2.4.0"
 
 [features.spontaneous_file_upload]
-enabled = true
+enabled = false
 accept = [ "*/*",]
 max_files = 20
 max_size_mb = 500

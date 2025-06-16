@@ -2,6 +2,7 @@
 bak/
 examples/
 .chainlit/
+user_settings/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
