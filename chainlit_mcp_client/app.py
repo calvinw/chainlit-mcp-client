@@ -129,6 +129,95 @@ import chainlit as cl
 async def action_button_callback(action):
     await handle_action(action)
 
+@cl.action_callback("reload_tools")
+async def reload_tools_callback(action):
+    """Reload tools from all connected MCP servers"""
+    mcp_sessions = cl.context.session.mcp_sessions
+    if not mcp_sessions:
+        await cl.Message("❌ No MCP connections found to reload tools from").send()
+        return
+    
+    # Clear existing tools
+    cl.user_session.set("mcp_tools_data", {})
+    cl.user_session.set("mcp_openai_tools", {})
+    
+    reloaded_count = 0
+    # Reload tools from each connection
+    for connection_name, (session, _) in mcp_sessions.items():
+        try:
+            result = await session.list_tools()
+            # Store raw MCP tool definitions
+            mcp_raw_tools = [{
+                "name": t.name,
+                "description": t.description,
+                "input_schema": t.inputSchema,
+                } for t in result.tools]
+
+            mcp_tools_data = cl.user_session.get("mcp_tools_data", {})
+            mcp_tools_data[connection_name] = mcp_raw_tools
+            cl.user_session.set("mcp_tools_data", mcp_tools_data)
+
+            # Also store OpenAI formatted tools for easy access later
+            openai_tools = [mcp_to_openai_tool(tool) for tool in mcp_raw_tools]
+            mcp_openai_tools = cl.user_session.get("mcp_openai_tools", {})
+            mcp_openai_tools[connection_name] = openai_tools
+            cl.user_session.set("mcp_openai_tools", mcp_openai_tools)
+            
+            reloaded_count += len(mcp_raw_tools)
+        except Exception as e:
+            await cl.Message(f"❌ Error reloading tools from {connection_name}: {str(e)}").send()
+            continue
+    
+    await cl.Message(f"⟳ Reloaded {reloaded_count} tools from {len(mcp_sessions)} MCP connection(s)").send()
+
+@cl.action_callback("execute_all")
+async def execute_all_callback(action):
+    """Execute all available tools with their sample parameters"""
+    mcp_tools_data = cl.user_session.get("mcp_tools_data", {})
+    
+    if not mcp_tools_data:
+        await cl.Message("❌ No MCP tools available to execute").send()
+        return
+    
+    
+    # Count total tools
+    total_tools = sum(len(tools) for tools in mcp_tools_data.values())
+    await cl.Message(f"🚀 Executing all {total_tools} tools with sample parameters...").send()
+    
+    # Execute each tool with sample parameters
+    for connection_name, tools in mcp_tools_data.items():
+        for tool in tools:
+            tool_name = tool["name"]
+            sample_params = generate_sample_params(tool.get("input_schema", {}))
+            
+            # Format parameters for display
+            if sample_params:
+                formatted_params = []
+                for k, v in sample_params.items():
+                    if isinstance(v, str):
+                        formatted_params.append(f'"{v}"')
+                    else:
+                        formatted_params.append(str(v))
+                params_str = ",".join(formatted_params)
+            else:
+                params_str = ""
+            
+            # Create a message that looks like a function call
+            message_content = f"Call {tool_name}({params_str})"
+            
+            # Show the function call and process it
+            await cl.Message(content=f"⚡ {message_content}").send()
+            
+            # Create a fake message object and trigger the message handler
+            class FakeMessage:
+                def __init__(self, content):
+                    self.content = content
+            
+            fake_msg = FakeMessage(message_content)
+            await on_message(fake_msg)
+    
+
+
 async def handle_action(action):
     """Handle all action button clicks"""
     if action.name == "action_button":
@@ -310,9 +399,32 @@ async def on_mcp(connection, session: ClientSession):
             )
         
         if actions:
+            # Create control buttons that go first
+            control_actions = []
+            
+            # Add execute all button first
+            execute_all_action = cl.Action(
+                name="execute_all",
+                payload={},
+                label="🚀 Execute All"
+            )
+            control_actions.append(execute_all_action)
+            
+            # Add reload tools button second
+            reload_action = cl.Action(
+                name="reload_tools",
+                payload={},
+                label="⟳ Reload Tools"
+            )
+            control_actions.append(reload_action)
+            
+            # Combine control buttons first, then tool buttons
+            all_actions = control_actions + actions
+            
+            # Send connection message with action buttons
             await cl.Message(
-                content=f"🌐 Connected to **{connection.name}** MCP server with {len(actions)} tools. Click any button to try a tool with sample parameters:",
-                actions=actions
+                content=f"🌐 Connected to {connection.name} with {len(actions)} tools",
+                actions=all_actions
             ).send()
 
 @cl.step(type="tool")

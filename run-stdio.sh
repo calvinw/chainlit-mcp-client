@@ -2,7 +2,7 @@
 set -e
 
 PORT=${PORT:-8080}
-echo "🚀 Starting Chainlit app locally on port $PORT..."
+echo "🚀 Starting Chainlit app for stdio MCP servers on port $PORT..."
 
 # Set the app root to the current directory structure
 export CHAINLIT_APP_ROOT=$(pwd)/chainlit_mcp_client
