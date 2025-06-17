@@ -129,46 +129,19 @@ import chainlit as cl
 async def action_button_callback(action):
     await handle_action(action)
 
-@cl.action_callback("reload_tools")
-async def reload_tools_callback(action):
-    """Reload tools from all connected MCP servers"""
-    mcp_sessions = cl.context.session.mcp_sessions
-    if not mcp_sessions:
-        await cl.Message("❌ No MCP connections found to reload tools from").send()
-        return
-    
-    # Clear existing tools
-    cl.user_session.set("mcp_tools_data", {})
-    cl.user_session.set("mcp_openai_tools", {})
-    
-    reloaded_count = 0
-    # Reload tools from each connection
-    for connection_name, (session, _) in mcp_sessions.items():
-        try:
-            result = await session.list_tools()
-            # Store raw MCP tool definitions
-            mcp_raw_tools = [{
-                "name": t.name,
-                "description": t.description,
-                "input_schema": t.inputSchema,
-                } for t in result.tools]
 
-            mcp_tools_data = cl.user_session.get("mcp_tools_data", {})
-            mcp_tools_data[connection_name] = mcp_raw_tools
-            cl.user_session.set("mcp_tools_data", mcp_tools_data)
-
-            # Also store OpenAI formatted tools for easy access later
-            openai_tools = [mcp_to_openai_tool(tool) for tool in mcp_raw_tools]
-            mcp_openai_tools = cl.user_session.get("mcp_openai_tools", {})
-            mcp_openai_tools[connection_name] = openai_tools
-            cl.user_session.set("mcp_openai_tools", mcp_openai_tools)
-            
-            reloaded_count += len(mcp_raw_tools)
-        except Exception as e:
-            await cl.Message(f"❌ Error reloading tools from {connection_name}: {str(e)}").send()
-            continue
+@cl.action_callback("list_tools")
+async def list_tools_callback(action):
+    """Send the list tools prompt to the LLM"""
+    # Create a fake message with the starter prompt
+    starter_message = "Can you list your available tools. Make sure to give the names and parameters and a description. Format it in table."
     
-    await cl.Message(f"⟳ Reloaded {reloaded_count} tools from {len(mcp_sessions)} MCP connection(s)").send()
+    class FakeMessage:
+        def __init__(self, content):
+            self.content = content
+    
+    fake_msg = FakeMessage(starter_message)
+    await on_message(fake_msg)
 
 @cl.action_callback("execute_all")
 async def execute_all_callback(action):
@@ -402,7 +375,15 @@ async def on_mcp(connection, session: ClientSession):
             # Create control buttons that go first
             control_actions = []
             
-            # Add execute all button first
+            # Add list tools button first
+            list_tools_action = cl.Action(
+                name="list_tools",
+                payload={},
+                label="📊 List Tools"
+            )
+            control_actions.append(list_tools_action)
+            
+            # Add execute all button second
             execute_all_action = cl.Action(
                 name="execute_all",
                 payload={},
@@ -410,13 +391,6 @@ async def on_mcp(connection, session: ClientSession):
             )
             control_actions.append(execute_all_action)
             
-            # Add reload tools button second
-            reload_action = cl.Action(
-                name="reload_tools",
-                payload={},
-                label="⟳ Reload Tools"
-            )
-            control_actions.append(reload_action)
             
             # Combine control buttons first, then tool buttons
             all_actions = control_actions + actions
