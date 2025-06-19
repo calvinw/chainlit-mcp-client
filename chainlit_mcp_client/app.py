@@ -143,51 +143,6 @@ async def list_tools_callback(action):
     fake_msg = FakeMessage(starter_message)
     await on_message(fake_msg)
 
-@cl.action_callback("execute_all")
-async def execute_all_callback(action):
-    """Execute all available tools with their sample parameters"""
-    mcp_tools_data = cl.user_session.get("mcp_tools_data", {})
-    
-    if not mcp_tools_data:
-        await cl.Message("❌ No MCP tools available to execute").send()
-        return
-    
-    
-    # Count total tools
-    total_tools = sum(len(tools) for tools in mcp_tools_data.values())
-    await cl.Message(f"🚀 Executing all {total_tools} tools with sample parameters...").send()
-    
-    # Execute each tool with sample parameters
-    for connection_name, tools in mcp_tools_data.items():
-        for tool in tools:
-            tool_name = tool["name"]
-            sample_params = generate_sample_params(tool.get("input_schema", {}))
-            
-            # Format parameters for display
-            if sample_params:
-                formatted_params = []
-                for k, v in sample_params.items():
-                    if isinstance(v, str):
-                        formatted_params.append(f'"{v}"')
-                    else:
-                        formatted_params.append(str(v))
-                params_str = ",".join(formatted_params)
-            else:
-                params_str = ""
-            
-            # Create a message that looks like a function call
-            message_content = f"Call {tool_name}({params_str})"
-            
-            # Show the function call and process it
-            await cl.Message(content=f"⚡ {message_content}").send()
-            
-            # Create a fake message object and trigger the message handler
-            class FakeMessage:
-                def __init__(self, content):
-                    self.content = content
-            
-            fake_msg = FakeMessage(message_content)
-            await on_message(fake_msg)
     
 
 
@@ -243,49 +198,28 @@ async def start():
 def flatten(xss):
     return [x for xs in xss for x in xs]
 
-def generate_sample_params(input_schema):
-    """Generate parameters using defaults from schema or reasonable fallbacks"""
+def generate_sample_params(input_schema, tool_name=None):
+    """Generate parameters using only defaults from schema. Returns None if any required parameter lacks a default."""
     if not input_schema or not isinstance(input_schema, dict):
         return {}
     
     properties = input_schema.get("properties", {})
+    required = input_schema.get("required", [])
     sample_params = {}
     
+    # First check if all required parameters have defaults
+    for param_name in required:
+        if param_name not in properties:
+            return None  # Required parameter not defined in properties
+        param_info = properties[param_name]
+        if "default" not in param_info:
+            return None  # Required parameter lacks default value
+    
+    # If we get here, all required parameters have defaults
     for param_name, param_info in properties.items():
-        # First check if there's a default value in the schema
+        # Only use parameters that have explicit defaults
         if "default" in param_info:
             sample_params[param_name] = param_info["default"]
-            continue
-            
-        param_type = param_info.get("type", "string")
-        
-        # Only add non-required parameters or provide sensible defaults
-        if param_type == "string":
-            if param_name == "sql":
-                sample_params[param_name] = "SELECT * FROM customers LIMIT 5"
-            elif "query" in param_name.lower():
-                sample_params[param_name] = "sample query"
-            else:
-                # Only add if it's required or has an example
-                required = input_schema.get("required", [])
-                if param_name in required or "example" in param_info:
-                    sample_params[param_name] = param_info.get("example", f"sample_{param_name}")
-        elif param_type == "number" or param_type == "integer":
-            if param_name in ["a", "x", "num1"]:
-                sample_params[param_name] = 34.3
-            elif param_name in ["b", "y", "num2"]:
-                sample_params[param_name] = 4.5
-            else:
-                sample_params[param_name] = param_info.get("example", 42)
-        elif param_type == "boolean":
-            sample_params[param_name] = param_info.get("example", True)
-        elif param_type == "array":
-            sample_params[param_name] = param_info.get("example", ["example"])
-        else:
-            # Only add if required
-            required = input_schema.get("required", [])
-            if param_name in required:
-                sample_params[param_name] = param_info.get("example", f"sample_{param_name}")
     
     return sample_params
 
@@ -336,7 +270,11 @@ async def on_mcp(connection, session: ClientSession):
         actions = []
         for tool in mcp_raw_tools:
             # Generate sample parameters based on the tool's input schema
-            sample_params = generate_sample_params(tool.get("input_schema", {}))
+            sample_params = generate_sample_params(tool.get("input_schema", {}), tool["name"])
+            
+            # Skip this tool if it doesn't have complete defaults
+            if sample_params is None:
+                continue
             
             action_name = f"tool_{tool['name']}"
             
@@ -383,13 +321,6 @@ async def on_mcp(connection, session: ClientSession):
             )
             control_actions.append(list_tools_action)
             
-            # Add execute all button second
-            execute_all_action = cl.Action(
-                name="execute_all",
-                payload={},
-                label="🚀 Execute All"
-            )
-            control_actions.append(execute_all_action)
             
             
             # Combine control buttons first, then tool buttons
