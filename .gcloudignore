@@ -1,0 +1,68 @@
+# Git files
+.git
+.gitignore
+
+# Python cache
+__pycache__
+*.pyc
+*.pyo
+*.pyd
+.Python
+pip-log.txt
+pip-delete-this-directory.txt
+.tox
+.coverage
+.coverage.*
+.cache
+nosetests.xml
+coverage.xml
+*.cover
+*.log
+.git
+.mypy_cache
+.pytest_cache
+.hypothesis
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Local env files
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# User settings (contains API keys)
+user_settings/
+
+# HTML examples and iframe content (not needed for deployment)
+html/
+iframe/
+
+# Heroku specific files
+heroku.yml
+
+# Documentation
+README.md
+*.md
+!chainlit_mcp_client/chainlit.md
+
+# Local run scripts
+run-*.sh
+
+# Google Cloud configuration
+gcloud-config.env

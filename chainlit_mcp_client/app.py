@@ -22,63 +22,81 @@ SYSTEM = """You are a helpful assistant with some tools."""
 
 # Available OpenRouter models
 OPENROUTER_MODELS = [
-    # Google Models
-    "google/gemini-2.5-flash-preview-05-20",
+    # Google Models (Latest)
+    "google/gemini-2.5-flash",
     "google/gemini-2.5-flash-preview",
     "google/gemini-2.5-flash-preview:thinking",
-    "google/gemini-2.5-pro-preview-05-06",
+    "google/gemini-2.5-pro",
     "google/gemini-2.5-pro-preview",
-    "google/gemini-2.5-flash-preview-05-20:thinking",
-    "google/gemini-pro-1.5",
+    "google/gemini-2.0-flash-001",
+    "google/gemini-2.0-flash-lite-001",
     "google/gemini-flash-1.5",
     "google/gemini-flash-1.5-8b",
+    "google/gemini-pro-1.5",
     
-    # Anthropic Models
+    # Anthropic Models (Latest)
     "anthropic/claude-opus-4",
     "anthropic/claude-sonnet-4",
+    "anthropic/claude-3.7-sonnet",
+    "anthropic/claude-3.7-sonnet:thinking",
+    "anthropic/claude-3.5-sonnet",
     "anthropic/claude-3.5-haiku",
     "anthropic/claude-3.5-haiku-20241022",
-    "anthropic/claude-3.5-sonnet",
-    "anthropic/claude-3.7-sonnet",
-    "anthropic/claude-3-haiku",
     "anthropic/claude-3-opus",
     "anthropic/claude-3-sonnet",
+    "anthropic/claude-3-haiku",
     
-    # OpenAI Models
-    "openai/gpt-4o",
-    "openai/gpt-4o-mini",
+    # OpenAI Models (Latest)
+    "openai/o3-pro",
+    "openai/o3",
+    "openai/o3-mini",
     "openai/o4-mini-high",
     "openai/o4-mini",
-    "openai/o3",
+    "openai/o1-pro",
+    "openai/o1",
     "openai/o1-mini",
     "openai/o1-preview",
+    "openai/gpt-4o",
+    "openai/gpt-4o-mini",
     "openai/gpt-4.1",
-    "openai/gpt-4.1-nano",
     "openai/gpt-4.1-mini",
+    "openai/gpt-4.1-nano",
     "openai/gpt-3.5-turbo",
-    "openai/codex-mini",
     
-    # Qwen Models
-    "qwen/qwen3-30b-a3b",
-    "qwen/qwen3-14b",
-    "qwen/qwen3-32b",
-    "qwen/qwen3-235b-a22b",
-    "qwen/qwen-2.5-coder-32b-instruct:free",
-    "qwen/qwen-2.5-coder-32b-instruct",
-    
-    # DeepSeek Models
-    "deepseek/deepseek-chat:free",
+    # DeepSeek Models (Popular Reasoning Models)
+    "deepseek/deepseek-r1",
+    "deepseek/deepseek-r1:free",
+    "deepseek/deepseek-chat-v3-0324",
+    "deepseek/deepseek-chat-v3-0324:free",
     "deepseek/deepseek-chat",
+    "deepseek/deepseek-chat:free",
     
-    # Mistral Models
+    # Qwen Models (Popular)
+    "qwen/qwen3-235b-a22b",
+    "qwen/qwen3-235b-a22b:free",
+    "qwen/qwen3-32b",
+    "qwen/qwen3-32b:free",
+    "qwen/qwen3-14b",
+    "qwen/qwen3-14b:free",
+    "qwen/qwen-2.5-coder-32b-instruct",
+    "qwen/qwen-2.5-coder-32b-instruct:free",
+    "qwen/qwq-32b",
+    "qwen/qwq-32b:free",
+    
+    # Mistral Models (Latest)
+    "mistralai/magistral-medium-2506",
+    "mistralai/magistral-medium-2506:thinking",
+    "mistralai/magistral-small-2506",
+    "mistralai/mistral-large-2411",
+    "mistralai/mistral-small-24b-instruct-2501",
+    "mistralai/mistral-small-24b-instruct-2501:free",
     "mistralai/mistral-large",
     "mistralai/mistral-small",
-    "mistralai/mistral-tiny",
-    "mistralai/mistral-medium"
+    "mistralai/codestral-2501"
 ]
 
 # Default model selection
-DEFAULT_MODEL = "google/gemini-2.5-flash-preview-05-20"
+DEFAULT_MODEL = "google/gemini-2.5-flash"
 DEFAULT_TEMPERATURE = 0
 
 # User settings persistence
