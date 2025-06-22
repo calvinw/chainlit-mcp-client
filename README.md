@@ -16,25 +16,25 @@ You can load up some remote MCPS at this point, here are the details:
 Type: SSE  
 Name: mcp-greet   
 
-ServerURL: https://mcp-greet-121045565852.us-central1.run.app/sse
+ServerURL: https://mcp-greet.mcp.mathplosion.com
 
 ### MCP Dolt Database Server  
 Type: SSE  
 Name: mcp-dolt-database  
 
-ServerURL: https://mcp-dolt-database-121045565852.us-central1.run.app/sse  
+ServerURL: https://mcp-dolt-database.mcp.mathplosion.com  
 
 ### MCP SEC 10ks Server 
 Type: SSE  
 Name: mcp-sec-10ks  
 
-ServerURL: https://mcp-sec-10ks-121045565852.us-central1.run.app/sse  
+ServerURL: https://mcp-sec-10ks.mcp.mathplosion.com  
 
 ### MCP YFinance 10ks Server 
 Type: SSE  
 Name: mcp-yfinance-10ks  
 
-ServerURL: https://mcp-yfinance-10ks-89c87b6d03d1.herokuapp.com/sse  
+ServerURL: https://mcp-yfinance-10ks.mcp.mathplosion.com  
 
 With this dolt database MCP you can explore any dolt database in the format:
 
