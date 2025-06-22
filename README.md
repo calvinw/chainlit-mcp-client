@@ -15,24 +15,26 @@ You can load up some remote MCPS at this point, here are the details:
 ### MCP Greet Server  
 Type: SSE  
 Name: mcp-greet   
-ServerURL: https://mcp-greet-5ea4aa63d7e9.herokuapp.com/sse
+
+ServerURL: https://mcp-greet-121045565852.us-central1.run.app/sse
 
 ### MCP Dolt Database Server  
 Type: SSE  
 Name: mcp-dolt-database  
-ServerURL: https://mcp-dolt-database-3b846e43fd3d.herokuapp.com/sse
+
+ServerURL: https://mcp-dolt-database-121045565852.us-central1.run.app/sse  
 
 ### MCP SEC 10ks Server 
 Type: SSE  
 Name: mcp-sec-10ks  
-ServerURL: https://mcp-sec-10ks-0f5ce95846d9.herokuapp.com/sse  
+
+ServerURL: https://mcp-sec-10ks-121045565852.us-central1.run.app/sse  
 
 ### MCP YFinance 10ks Server 
 Type: SSE  
 Name: mcp-yfinance-10ks  
-ServerURL: https://mcp-yfinance-10ks-89c87b6d03d1.herokuapp.com/sse  
 
-## MCP Dolt Database
+ServerURL: https://mcp-yfinance-10ks-89c87b6d03d1.herokuapp.com/sse  
 
 With this dolt database MCP you can explore any dolt database in the format:
 

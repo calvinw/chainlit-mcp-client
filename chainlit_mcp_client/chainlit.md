@@ -1,5 +1,3 @@
-# Chainlit MCP Client 
-
 ### Live Demo Version (uses OPENROUTER\_API\_KEY)
 
 [Chainit MCP Client](https://chainlit-mcp-client-48a066d63642.herokuapp.com)
@@ -12,29 +10,33 @@ After you start put in your OPENROUTER\_API\_KEY, this will be saved in local st
 
 Go to the wrench icon and you can load up local or remote MCPS with this Chainlit app. 
 
-### MCP Greet Server   
-Type: SSE    
-Name: mcp-greet    
-ServerURL: https://mcp-greet-5ea4aa63d7e9.herokuapp.com/sse
+You can load up some remote MCPS at this point, here are the details:
 
-### MCP Dolt Database Server   
-Type: SSE    
-Name: mcp-dolt-database    
-ServerURL: https://mcp-dolt-database-3b846e43fd3d.herokuapp.com/sse
+### MCP Greet Server  
+Type: SSE  
+Name: mcp-greet   
 
-### MCP SEC 10ks Server   
-Type: SSE    
-Name: mcp-sec-10ks    
-ServerURL: https://mcp-sec-10ks-0f5ce95846d9.herokuapp.com/sse
+ServerURL: https://mcp-greet-121045565852.us-central1.run.app/sse
 
-### MCP YFinance 10ks Server    
-Type: SSE    
-Name: mcp-yfinance-10ks   
-ServerURL: https://mcp-yfinance-10ks-89c87b6d03d1.herokuapp.com/sse
+### MCP Dolt Database Server  
+Type: SSE  
+Name: mcp-dolt-database  
 
-## More on the MCP Dolt Database (mcp-dolt-database)
+ServerURL: https://mcp-dolt-database-121045565852.us-central1.run.app/sse  
 
-With this particular MCP you can explore any dolt database in the format:
+### MCP SEC 10ks Server 
+Type: SSE  
+Name: mcp-sec-10ks  
+
+ServerURL: https://mcp-sec-10ks-121045565852.us-central1.run.app/sse  
+
+### MCP YFinance 10ks Server 
+Type: SSE  
+Name: mcp-yfinance-10ks  
+
+ServerURL: https://mcp-yfinance-10ks-89c87b6d03d1.herokuapp.com/sse  
+
+With this dolt database MCP you can explore any dolt database in the format:
 
 owner/database/branch
 
@@ -45,8 +47,7 @@ where
 
 For example `calvinw/coffee-shop/main` is [here](https://www.dolthub.com/repositories/calvinw/coffee-shop)
 
-You will be able only be able to query it in *view* only mode unless you set up
-a dolt api key and pass that to the LLM to pass to the MCP (be careful!)
+You will be able only be able to query it in *view* only mode unless you pass it a dolt api token.
 
 ## Tools Available 
 
