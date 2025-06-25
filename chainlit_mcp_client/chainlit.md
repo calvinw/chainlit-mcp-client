@@ -1,6 +1,6 @@
 ### Live Demo Version (uses OPENROUTER\_API\_KEY)
 
-[Chainit MCP Client](https://chainlit-mcp-client-48a066d63642.herokuapp.com)
+[Chainit MCP Client](https://chainlit-mcp-client.mathplosion.com/)
 
 ### Version with Database Display (uses OPENROUTER\_API\_KEY)
 
