@@ -480,12 +480,6 @@ async def start_chat():
     
     # Check if user has API key from localStorage and can restore preferences
     user_env = cl.user_session.get("env", {})
-    
-    # Ensure user_env is a dictionary to prevent AttributeError
-    if not isinstance(user_env, dict):
-        logger.warning(f"user_env is not a dictionary, resetting to empty dict. Type: {type(user_env)}, Value: {user_env}")
-        user_env = {} 
-
     api_key = user_env.get("OPENROUTER_API_KEY")
     
     # Default settings
@@ -592,12 +586,6 @@ async def on_settings_update(settings):
 async def on_message(msg: cl.Message):
     # Get API key from environment variables in user session
     user_env = cl.user_session.get("env", {})
-    
-    # Ensure user_env is a dictionary to prevent AttributeError
-    if not isinstance(user_env, dict):
-        logger.warning(f"user_env is not a dictionary, resetting to empty dict. Type: {type(user_env)}, Value: {user_env}")
-        user_env = {}
-
     api_key = user_env.get("OPENROUTER_API_KEY")
     chat_messages = cl.user_session.get("chat_messages", [])
     chat_messages.append({"role": "user", "content": msg.content})
@@ -635,4 +623,3 @@ async def on_message(msg: cl.Message):
              })
 
     cl.user_session.set("chat_messages", chat_messages)
-
